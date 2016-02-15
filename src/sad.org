@@ -24,9 +24,6 @@
     function_p = (value) ->
       typeof value is "function"
 
-    undefined_p = (value) ->
-      value is undefined
-
     array_p = (value) ->
       Array.isArray(value)
 
@@ -364,7 +361,7 @@
       if function_p(jo)
         eva_primitive_function(jo, retack_point)
 
-      else if undefined_p(jo)
+      else if jo is undefined
         # do nothing
 
       else if array_p jo._sad
@@ -473,35 +470,38 @@
 * test sad
 
   #+begin_src coffee
-  do ->
-    add = (a, b) -> a + b
+  # do ->
+  #   add = (a, b) -> a + b
 
-    testing_sad = sad [
-      1, 2, 3
-    ]
+  #   testing_sad = sad [
+  #     1, 2, 3
+  #   ]
 
-    my_object =
-      k1: "value k1 of my_object"
+  #   my_object =
+  #     k1: "value k1 of my_object"
 
-    eva [ 1, 2, 3, add, add,
-      (sad [1, 2, 3]) , add, add,
-      testing_sad, add, add,
-      my_object,"k1",send
-    ]
+  #   eva [ 1, 2, 3, add, add,
+  #     (sad [1, 2, 3]) , add, add,
+  #     testing_sad, add, add,
+  #     my_object,"k1",send
+  #   ]
 
-    asr(argack.pop() is my_object.k1)
-    asr(argack.pop() is 6)
-    asr(argack.pop() is 6)
-    asr(argack.pop() is 6)
+  #   asr(argack.pop() is my_object.k1)
+  #   asr(argack.pop() is 6)
+  #   asr(argack.pop() is 6)
+  #   asr(argack.pop() is 6)
 
-    asr(argack.cursor() is 0)
+  #   asr(argack.cursor() is 0)
   #+end_src
 
 * exports
 
   #+begin_src coffee
   module.exports = {
+    in_node, in_browser,
+    function_p, array_p, object_p, atom_p, string_p
     cat, orz, asr
     STACK, HASH_TABLE
+    argack, retack, eva
   }
   #+end_src
