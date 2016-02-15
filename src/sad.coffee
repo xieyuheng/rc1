@@ -289,9 +289,9 @@ eva_dispatch = (jo, retack_point) ->
       jo._into_local_variable,
       retack_point.local_variable_map
 
-  else if array_p jo._out_local_variable
-    eva_out_local_variable \
-      jo._out_local_variable,
+  else if array_p jo._outo_local_variable
+    eva_outo_local_variable \
+      jo._outo_local_variable,
       retack_point.local_variable_map
 
   else
@@ -315,24 +315,24 @@ eva_into_local_variable = (array, local_variable_map) ->
   for name_string in array
     do (name_string) ->
     local_variable_map.set name_string, argack.pop()
-out = () ->
+outo = () ->
   array = []
   array.push(element) for element in arguments
-  _out_local_variable: array
-eva_out_local_variable = (array, local_variable_map) ->
+  _outo_local_variable: array
+eva_outo_local_variable = (array, local_variable_map) ->
   for name_string in array
     do (name_string) ->
     result = local_variable_map.get(name_string)
     if result is undefined
       # ><><><
       # better error handling
-      orz "- in eva_out_local_variable\n",
+      orz "- in eva_outo_local_variable\n",
           "  meet undefined name : ", name_string
     else
       argack.push(result)
 sad = (array) -> _sad: array
-send = (object, message) ->
-  if typeof object[message] is "function"
+ya = (object, message) ->
+  if function_p object[message]
     arg_length = object[message].length
     arg_list = []
     while arg_length isnt 0
@@ -345,32 +345,41 @@ send = (object, message) ->
   else
     argack.push(object[message])
   return undefined
-# do ->
-#   add = (a, b) -> a + b
+do ->
+  add = (a, b) -> a + b
 
-#   testing_sad = sad [
-#     1, 2, 3
-#   ]
+  testing_sad = sad [
+    1, 2, 3
+  ]
 
-#   my_object =
-#     k1: "value k1 of my_object"
+  my_object =
+    k1: "value k1 of my_object"
 
-#   eva [ 1, 2, 3, add, add,
-#     (sad [1, 2, 3]) , add, add,
-#     testing_sad, add, add,
-#     my_object,"k1",send
-#   ]
+  eva [
+    1, 2, 3, add, add
+    (sad [1, 2, 3]) , add, add
+    testing_sad, add, add
+    my_object, "k1", ya
+  ]
 
-#   asr(argack.pop() is my_object.k1)
-#   asr(argack.pop() is 6)
-#   asr(argack.pop() is 6)
-#   asr(argack.pop() is 6)
+  asr(argack.pop() is my_object.k1)
+  asr(argack.pop() is 6)
+  asr(argack.pop() is 6)
+  asr(argack.pop() is 6)
 
-#   asr(argack.cursor() is 0)
+  asr(argack.cursor() is 0)
+
+  eva [
+    1, 2, 3
+    (into "1", "2", "3")
+    (outo "1", "2", "3")
+    (outo "1", "2", "3")
+  ]
 module.exports = {
   in_node, in_browser,
   function_p, array_p, object_p, atom_p, string_p
   cat, orz, asr
   STACK, HASH_TABLE
-  argack, retack, eva
+  argack, retack
+  into, outo, ya, eva
 }

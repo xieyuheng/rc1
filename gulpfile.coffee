@@ -74,6 +74,9 @@ gulp.task "run", () ->
 
 gulp.task "dev", [ "tangle", "build", "run" ], () ->
 
+gulp.task "test", [ "tangle", "build" ] () ->
+  run("coffee src/sad.coffee")
+
 gulp.task "clean", () ->
   console.log("cleaning *~")
   run("find . -name '*~' -delete")
