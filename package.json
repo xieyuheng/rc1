@@ -1,0 +1,23 @@
+{
+  "name": "sad-coffee",
+  "version": "0.0.1",
+  "description": "a sad library",
+  "keywords": [
+    "language",
+    "interpreter"
+  ],
+  "main": "lib/sad.js",
+  "author": "XIE Yuheng",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xieyuheng/sad-coffee.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xieyuheng/sad-coffee/issues"
+  },
+  "homepage": "http://cicada-language.github.io",
+  "devDependencies": {
+    "gulp": "^3.9.0"
+  }
+}

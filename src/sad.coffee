@@ -21,7 +21,6 @@ atom_p = (value) ->
 
 string_p = (value) ->
   typeof value is "string"
-
 cat_indentation = 0
 
 cat_get_indentation_array = () ->
@@ -73,18 +72,14 @@ incat = () ->
 # call_with_indentation () ->
 #   call_with_indentation () -> cat("k1", "k2", "k3")
 #   call_with_indentation () -> incat("k1", "k2", "k3")
-
 orz = () ->
   cat.apply(this, arguments)
   console.assert(false)
 
 # orz("k1", "k2", "k3")
-
 asr = () ->
   console.assert.apply(console, arguments)
-
 Array::last = () -> this[@length - 1]
-
 class STACK
   constructor: () ->
     @array = []
@@ -148,11 +143,113 @@ do ->
   asr(array[0] is 0)
   asr(array[1] is 1)
   asr(array[2] is 2)
+class HASH_TABLE_ENTRY
+  constructor: (@index) ->
+    @key = null
+    @value = null
+    @orbit_length = 0
+    @orbiton = 0
 
+  occured: () ->
+    @key isnt null
+
+  used: () ->
+    @value isnt null
+
+  no_collision: () ->
+    @index is @orbiton
+
+class HASH_TABLE
+  constructor: (@size, @key_equal, @hash) ->
+    @array = new Array(@size)
+    @counter = 0
+    i = 0
+    while i < @size
+      @array[i] = new HASH_TABLE_ENTRY(i)
+      i = 1 + i
+
+  insert: (key) ->
+    # key -> index
+    #     -> null -- denotes the hash_table is filled
+    orbit_index = @hash(key, 0)
+    counter = 0
+    while true
+      index = @hash(key, counter)
+      entry = @index_to_entry(index)
+      if not entry.occured()
+        entry.key = key
+        entry.orbiton = orbit_index
+        orbit_entry = @index_to_entry(orbit_index)
+        orbit_entry.orbit_length = 1 + counter
+        @counter = 1 + @counter
+        return index
+      else if @key_equal(key, entry.key)
+        return index
+      else if counter is @size
+        return null
+      else
+        counter = 1 + counter
+
+  search: (key) ->
+    # key -> index
+    #     -> null -- denotes key not occured
+    counter = 0
+    while true
+      index = @hash(key, counter)
+      entry = @index_to_entry(index)
+      if not entry.occured()
+        return null
+      else if @key_equal(key, entry.key)
+        return index
+      else if counter is @size
+        return null
+      else
+        counter = 1 + counter
+
+  key_to_index: (key) ->
+    index = @insert(key)
+    if index isnt null
+      index
+    else
+      console.log("hash_table is filled")
+      throw "hash_table is filled"
+
+  index_to_entry: (index) ->
+    @array[index]
+
+  key_to_entry: (key) ->
+    index_to_entry(key_to_index(key))
+
+  report_orbit: (index, counter) ->
+    entry = @index_to_entry(index)
+    while counter < entry.orbit_length
+      key = entry.key
+      next_index = @hash(key, counter)
+      next_entry = @index_to_entry(next_index)
+      if index is next_entry.orbiton
+        cat("  - ", next_index, " ",
+            next_entry.key)
+      counter = 1 + counter
+
+  report: () ->
+    console.log("\n")
+    console.log("- hash_table-table report_used")
+    index = 0
+    while (index < @size)
+      entry = @index_to_entry(index)
+      if entry.occured() and entry.no_collision()
+        cat("  - ", index, " ",
+            entry.key, " # ",
+            entry.orbit_length)
+        if entry.used()
+          cat "      ", entry.value
+        @report_orbit(index, 1)
+      index = 1 + index
+    cat "\n"
+    cat "- used : ", @counter
+    cat "- free : ", @size - @counter
 argack = new STACK()
-
 retack = new STACK()
-
 class RETACK_POINT
   constructor: (@array) ->
     @cursor = 0
@@ -166,7 +263,6 @@ class RETACK_POINT
 
   next: () ->
     @cursor = 1 + @cursor
-
 eva = (array) ->
   base_cursor = retack.cursor()
   first_retack_point = new RETACK_POINT array
@@ -180,7 +276,6 @@ eva = (array) ->
     eva_dispatch(jo, retack_point)
     argack.print()
   return first_retack_point
-
 eva_dispatch = (jo, retack_point) ->
 
   if function_p(jo)
@@ -204,7 +299,6 @@ eva_dispatch = (jo, retack_point) ->
 
   else
     argack.push(jo)
-
 eva_primitive_function = (jo, retack_point) ->
   count_down = jo.length
   arg_list = []
@@ -215,23 +309,19 @@ eva_primitive_function = (jo, retack_point) ->
   result = jo.apply(this, arg_list)
   if result isnt undefined
     argack.push(result)
-
 into = () ->
   array = []
   array.push(element) for element in arguments
   _into_local_variable: array
-
 eva_into_local_variable = (array, local_variable_map) ->
   array = array.reverse()
   for name_string in array
     do (name_string) ->
     local_variable_map.set name_string, argack.pop()
-
 out = () ->
   array = []
   array.push(element) for element in arguments
   _out_local_variable: array
-
 eva_out_local_variable = (array, local_variable_map) ->
   for name_string in array
     do (name_string) ->
@@ -243,9 +333,7 @@ eva_out_local_variable = (array, local_variable_map) ->
           "  meet undefined name : ", name_string
     else
       argack.push(result)
-
 sad = (array) -> _sad: array
-
 send = (object, message) ->
   if typeof object[message] is "function"
     arg_length = object[message].length
@@ -260,7 +348,6 @@ send = (object, message) ->
   else
     argack.push(object[message])
   return undefined
-
 do ->
   add = (a, b) -> a + b
 
@@ -283,3 +370,7 @@ do ->
   asr(argack.pop() is 6)
 
   asr(argack.cursor() is 0)
+exports = {
+  cat, orz, asr
+  STACK, HASH_TABLE
+}
