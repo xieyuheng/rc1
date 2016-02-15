@@ -500,7 +500,7 @@
 * exports
 
   #+begin_src coffee
-  exports = {
+  module.exports = {
     cat, orz, asr
     STACK, HASH_TABLE
   }

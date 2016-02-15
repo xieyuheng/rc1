@@ -370,7 +370,7 @@ do ->
   asr(argack.pop() is 6)
 
   asr(argack.cursor() is 0)
-exports = {
+module.exports = {
   cat, orz, asr
   STACK, HASH_TABLE
 }
