@@ -11,7 +11,9 @@ array_p = (value) ->
   Array.isArray(value)
 
 object_p = (value) ->
-  (value instanceof Object) and not array_p(value)
+  (value instanceof Object) and
+  (not (array_p value)) and
+  (not (value is null))
 
 atom_p = (value) ->
   not (array_p(value) or object_p(value))
@@ -281,6 +283,9 @@ eva_dispatch = (jo, retack_point) ->
   else if jo is undefined
     # do nothing
 
+  else if not object_p jo
+    argack.push jo
+
   else if array_p jo._sad
     retack.push new RETACK_POINT(jo._sad)
 
@@ -289,13 +294,13 @@ eva_dispatch = (jo, retack_point) ->
       jo._into_local_variable,
       retack_point.local_variable_map
 
-  else if array_p jo._outo_local_variable
-    eva_outo_local_variable \
-      jo._outo_local_variable,
+  else if array_p jo._out_local_variable
+    eva_out_local_variable \
+      jo._out_local_variable,
       retack_point.local_variable_map
 
   else
-    argack.push(jo)
+    argack.push jo
 eva_primitive_function = (jo, retack_point) ->
   count_down = jo.length
   arg_list = []
@@ -311,26 +316,66 @@ into = () ->
   array.push(element) for element in arguments
   _into_local_variable: array
 eva_into_local_variable = (array, local_variable_map) ->
-  array = array.reverse()
-  for name_string in array
-    do (name_string) ->
-    local_variable_map.set name_string, argack.pop()
-outo = () ->
+  i = 0
+  while i < array.length
+    local_variable_map.set array[(array.length - i) - 1], argack.pop()
+    i = 1 + i
+out = () ->
   array = []
   array.push(element) for element in arguments
-  _outo_local_variable: array
-eva_outo_local_variable = (array, local_variable_map) ->
+  _out_local_variable: array
+eva_out_local_variable = (array, local_variable_map) ->
   for name_string in array
     do (name_string) ->
     result = local_variable_map.get(name_string)
     if result is undefined
       # ><><><
       # better error handling
-      orz "- in eva_outo_local_variable\n",
+      orz "- in eva_out_local_variable\n",
           "  meet undefined name : ", name_string
     else
       argack.push(result)
 sad = (array) -> _sad: array
+drop = sad [
+  (into "1")
+]
+
+dup = sad [
+  (into "1")
+  (out "1", "1")
+]
+
+over = sad [
+  (into "1", "2")
+  (out "1", "2", "1")
+]
+
+tuck = sad [
+  (into "1", "2")
+  (out "2", "1", "2")
+]
+
+swap = sad [
+  (into "1", "2")
+  (out "2", "1")
+]
+andp = (bool1, bool2) -> bool1 and bool2
+orp  = (bool1, bool2) -> bool1 or bool2
+get = (array, index) -> array[index]
+set = (array, index, value) -> array[index] = value
+concat = (array1, array2) ->
+  array1.concat array2
+apply = (array) ->
+  retack.push new RETACK_POINT(array)
+  return undefined
+ifte = (predicate_array, true_array, false_array) ->
+
+map = (argument_array, function_array) ->
+
+
+
+
+
 ya = (object, message) ->
   if function_p object[message]
     arg_length = object[message].length
@@ -345,41 +390,39 @@ ya = (object, message) ->
   else
     argack.push(object[message])
   return undefined
-do ->
-  add = (a, b) -> a + b
+add = (a, b) -> a + b
+sub = (a, b) -> a - b
 
-  testing_sad = sad [
-    1, 2, 3
-  ]
+add1 = (a) -> a + 1
+sub1 = (a) -> a - 1
 
-  my_object =
-    k1: "value k1 of my_object"
+mul = (a, b) -> a * b
+div = (a, b) -> a / b
+mod = (a, b) -> a % b
 
-  eva [
-    1, 2, 3, add, add
-    (sad [1, 2, 3]) , add, add
-    testing_sad, add, add
-    my_object, "k1", ya
-  ]
+pow = (a, b) -> Math.pow a, b
+log = (a, b) -> Math.log a, b
 
-  asr(argack.pop() is my_object.k1)
-  asr(argack.pop() is 6)
-  asr(argack.pop() is 6)
-  asr(argack.pop() is 6)
+abs = (a) -> Math.abs a
+neg = (a) -> - a
 
-  asr(argack.cursor() is 0)
+max = (a, b) -> Math.max a, b
+min = (a, b) -> Math.min a, b
+eq   = (value1, value2) -> value1 is value2
+le   = (value1, value2) -> value1 <  value2
+gt   = (value1, value2) -> value1 >  value2
+leeq = (value1, value2) -> value1 <= value2
+gteq = (value1, value2) -> value1 >= value2
 
-  eva [
-    1, 2, 3
-    (into "1", "2", "3")
-    (outo "1", "2", "3")
-    (outo "1", "2", "3")
-  ]
+# do ->
+#   eva [
+#     [3, dup, dup], [add, add], concat, apply
+#   ]
 module.exports = {
   in_node, in_browser,
   function_p, array_p, object_p, atom_p, string_p
   cat, orz, asr
   STACK, HASH_TABLE
   argack, retack
-  into, outo, ya, eva
+  sad, into, out, ya, eva
 }

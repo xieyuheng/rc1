@@ -1,20 +1,30 @@
 #+TITLE:  sad coffee
 #+AUTHOR: 謝宇恆 / XIE Yuheng
 #+PROPERTY: tangle sad.coffee
-
+- really in need of a better org-mode tangle
+- STACK::print should return array of string
+  instead of printing thing
+  thus name change to STACK::report
+- delimited continuation
+- a way to do test
+- some array processing function as macro
 * todo
 
-  - more primitive & more joy combinator
+* note
 
-  - a way to do test
+*** beware of side-effect
 
-  - STACK::print should return array of string
-    instead of printing thing
-    thus name change to STACK::report
+    - beware of side-effect such as
+      pop push shift unshift
+      on array
+      if you pass array to sub-function
+      such side-effect will destroy the array
 
-  - delimited continuation
+*** asynchronous
 
-  - some array processing function as macro
+    - asynchronous code should only be used for IO
+      to express that
+      the callback depends on the finishing of asynchronous IO
 
 * helper
 
@@ -34,7 +44,9 @@
       Array.isArray(value)
 
     object_p = (value) ->
-      (value instanceof Object) and not array_p(value)
+      (value instanceof Object) and
+      (not (array_p value)) and
+      (not (value is null))
 
     atom_p = (value) ->
       not (array_p(value) or object_p(value))
@@ -370,6 +382,9 @@
       else if jo is undefined
         # do nothing
 
+      else if not object_p jo
+        argack.push jo
+
       else if array_p jo._sad
         retack.push new RETACK_POINT(jo._sad)
 
@@ -378,13 +393,13 @@
           jo._into_local_variable,
           retack_point.local_variable_map
 
-      else if array_p jo._outo_local_variable
-        eva_outo_local_variable \
-          jo._outo_local_variable,
+      else if array_p jo._out_local_variable
+        eva_out_local_variable \
+          jo._out_local_variable,
           retack_point.local_variable_map
 
       else
-        argack.push(jo)
+        argack.push jo
     #+end_src
 
 *** eva_primitive_function
@@ -415,32 +430,32 @@
 
     #+begin_src coffee
     eva_into_local_variable = (array, local_variable_map) ->
-      array = array.reverse()
-      for name_string in array
-        do (name_string) ->
-        local_variable_map.set name_string, argack.pop()
+      i = 0
+      while i < array.length
+        local_variable_map.set array[(array.length - i) - 1], argack.pop()
+        i = 1 + i
     #+end_src
 
-*** outo
+*** out
 
     #+begin_src coffee
-    outo = () ->
+    out = () ->
       array = []
       array.push(element) for element in arguments
-      _outo_local_variable: array
+      _out_local_variable: array
     #+end_src
 
-*** eva_outo_local_variable
+*** eva_out_local_variable
 
     #+begin_src coffee
-    eva_outo_local_variable = (array, local_variable_map) ->
+    eva_out_local_variable = (array, local_variable_map) ->
       for name_string in array
         do (name_string) ->
         result = local_variable_map.get(name_string)
         if result is undefined
           # ><><><
           # better error handling
-          orz "- in eva_outo_local_variable\n",
+          orz "- in eva_out_local_variable\n",
               "  meet undefined name : ", name_string
         else
           argack.push(result)
@@ -452,9 +467,117 @@
     sad = (array) -> _sad: array
     #+end_src
 
-* primitive
+* stack
 
-*** ya
+*** basic
+
+    #+begin_src coffee
+    drop = sad [
+      (into "1")
+    ]
+
+    dup = sad [
+      (into "1")
+      (out "1", "1")
+    ]
+
+    over = sad [
+      (into "1", "2")
+      (out "1", "2", "1")
+    ]
+
+    tuck = sad [
+      (into "1", "2")
+      (out "2", "1", "2")
+    ]
+
+    swap = sad [
+      (into "1", "2")
+      (out "2", "1")
+    ]
+    #+end_src
+
+* bool
+
+*** predicate
+
+    #+begin_src coffee
+    andp = (bool1, bool2) -> bool1 and bool2
+    orp  = (bool1, bool2) -> bool1 or bool2
+    #+end_src
+
+* array & combinator
+
+*** note
+
+    - array is the main data structure
+      combinator view array as function
+
+*** set & get
+
+    #+begin_src coffee
+    get = (array, index) -> array[index]
+    set = (array, index, value) -> array[index] = value
+    #+end_src
+
+*** concat
+
+    #+begin_src coffee
+    concat = (array1, array2) ->
+      array1.concat array2
+    #+end_src
+
+*** apply
+
+    #+begin_src coffee
+    apply = (array) ->
+      retack.push new RETACK_POINT(array)
+      return undefined
+    #+end_src
+
+*** >< ifte
+
+    #+begin_src coffee
+    ifte = (predicate_array, true_array, false_array) ->
+
+    #+end_src
+
+*** >< map
+
+    #+begin_src coffee
+    map = (argument_array, function_array) ->
+
+    #+end_src
+
+*** >< primrec
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< linrec
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< binrec
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< fold
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< filter
+
+* object
+
+*** massage passing
 
     #+begin_src coffee
     ya = (object, message) ->
@@ -473,39 +596,60 @@
       return undefined
     #+end_src
 
+* number
+
+*** note
+
+    - note that number is all limited float number
+
+*** basic
+
+    #+begin_src coffee
+    add = (a, b) -> a + b
+    sub = (a, b) -> a - b
+
+    add1 = (a) -> a + 1
+    sub1 = (a) -> a - 1
+
+    mul = (a, b) -> a * b
+    div = (a, b) -> a / b
+    mod = (a, b) -> a % b
+
+    pow = (a, b) -> Math.pow a, b
+    log = (a, b) -> Math.log a, b
+
+    abs = (a) -> Math.abs a
+    neg = (a) -> - a
+
+    max = (a, b) -> Math.max a, b
+    min = (a, b) -> Math.min a, b
+    #+end_src
+
+*** predicate
+
+    #+begin_src coffee
+    eq   = (value1, value2) -> value1 is value2
+    le   = (value1, value2) -> value1 <  value2
+    gt   = (value1, value2) -> value1 >  value2
+    leeq = (value1, value2) -> value1 <= value2
+    gteq = (value1, value2) -> value1 >= value2
+    #+end_src
+
+* string
+
+*** >< string_append
+
+    #+begin_src coffee
+
+    #+end_src
+
 * test sad
 
   #+begin_src coffee
-  do ->
-    add = (a, b) -> a + b
-
-    testing_sad = sad [
-      1, 2, 3
-    ]
-
-    my_object =
-      k1: "value k1 of my_object"
-
-    eva [
-      1, 2, 3, add, add
-      (sad [1, 2, 3]) , add, add
-      testing_sad, add, add
-      my_object, "k1", ya
-    ]
-
-    asr(argack.pop() is my_object.k1)
-    asr(argack.pop() is 6)
-    asr(argack.pop() is 6)
-    asr(argack.pop() is 6)
-
-    asr(argack.cursor() is 0)
-
-    eva [
-      1, 2, 3
-      (into "1", "2", "3")
-      (outo "1", "2", "3")
-      (outo "1", "2", "3")
-    ]
+  # do ->
+  #   eva [
+  #     [3, dup, dup], [add, add], concat, apply
+  #   ]
   #+end_src
 
 * exports
@@ -517,6 +661,6 @@
     cat, orz, asr
     STACK, HASH_TABLE
     argack, retack
-    into, outo, ya, eva
+    sad, into, out, ya, eva
   }
   #+end_src

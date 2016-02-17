@@ -1,4 +1,6 @@
 {
+  "author": "XIE Yuheng",
+  "license": "ISC",
   "name": "sad-coffee",
   "version": "0.0.3",
   "description": "a sad library",
@@ -7,8 +9,6 @@
     "interpreter"
   ],
   "main": "lib/sad.js",
-  "author": "XIE Yuheng",
-  "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xieyuheng/sad-coffee.git"
