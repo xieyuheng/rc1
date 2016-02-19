@@ -1,12 +1,15 @@
 #+TITLE:  sad coffee
 #+AUTHOR: 謝宇恆 / XIE Yuheng
 #+PROPERTY: tangle sad.coffee
-- better repl
 - recursive combinator
 - really in need of a better org-mode tangle
 - delimited continuation
 - some array processing function as macro
 * todo
+
+  - better repl
+
+  - replace gulp with sad-script
 
 * note
 
@@ -356,6 +359,14 @@
 
 *** eva_with_map
 
+    - main loop of the retack interpreter
+
+    - note that
+      proper tail call is handled here
+
+    - retack_point passing
+      thus eva_dispatch have the current retack_point
+
     #+begin_src coffee
     eva_with_map = (array, map) ->
       base_cursor = retack.cursor()
@@ -388,7 +399,7 @@
     eva_dispatch = (jo, retack_point) ->
 
       if function_p(jo)
-        eva_primitive_function(jo, retack_point)
+        eva_primitive_function jo
 
       else if jo is undefined
         # do nothing
@@ -417,7 +428,7 @@
 *** eva_primitive_function
 
     #+begin_src coffee
-    eva_primitive_function = (jo, retack_point) ->
+    eva_primitive_function = (jo) ->
       count_down = jo.length
       arg_list = []
       while count_down isnt 0
@@ -794,10 +805,17 @@
     ]
     #+end_src
 
-*** >< ifte
+*** ifte
 
     #+begin_src coffee
-    ifte = () ->
+    ifte = (predicate_array, true_array, false_array) ->
+      eva predicate_array
+      if argack.pop()
+        eva true_array
+        return undefined
+      else
+        eva false_array
+        return undefined
     #+end_src
 
 *** cond
@@ -1136,8 +1154,16 @@
 *** test
 
     #+begin_src coffee
+    factorial = sad [
+      [dup, 1, eq]
+      []
+      [dup, 1, sub, factorial, mul]
+      ifte
+    ]
+
     repl [
-      1, 2, 3, add, add
+      3, factorial
+      6, factorial
     ]
     #+end_src
 

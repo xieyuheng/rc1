@@ -276,7 +276,7 @@ eva = (array) ->
 eva_dispatch = (jo, retack_point) ->
 
   if function_p(jo)
-    eva_primitive_function(jo, retack_point)
+    eva_primitive_function jo
 
   else if jo is undefined
     # do nothing
@@ -299,7 +299,7 @@ eva_dispatch = (jo, retack_point) ->
 
   else
     argack.push jo
-eva_primitive_function = (jo, retack_point) ->
+eva_primitive_function = (jo) ->
   count_down = jo.length
   arg_list = []
   while count_down isnt 0
@@ -522,7 +522,14 @@ tes [
 ],[
   1, 1, 1
 ]
-ifte = () ->
+ifte = (predicate_array, true_array, false_array) ->
+  eva predicate_array
+  if argack.pop()
+    eva true_array
+    return undefined
+  else
+    eva false_array
+    return undefined
 cond = (sequent_array) ->
   index = 0
   while index + 1 < sequent_array.length
@@ -744,6 +751,14 @@ repl_with_map = (array, map) ->
     return first_retack_point
 repl = (array) ->
   repl_with_map array, new Map()
+factorial = sad [
+  [dup, 1, eq]
+  []
+  [dup, 1, sub, factorial, mul]
+  ifte
+]
+
 repl [
-  1, 2, 3, add, add
+  3, factorial
+  6, factorial
 ]
