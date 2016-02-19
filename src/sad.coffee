@@ -78,7 +78,6 @@ orz = () ->
 # orz("k1", "k2", "k3")
 asr = () ->
   console.assert.apply(console, arguments)
-Array::last = () -> this[@length - 1]
 class STACK
   constructor: () ->
     @array = []
@@ -116,7 +115,7 @@ class STACK
     while (n > 0)
       array.push(@array[@array.length - n])
       n = n - 1
-    array.reverse()
+    array
 
   is_empty: () ->
     @array.length is 0
@@ -262,9 +261,10 @@ class RETACK_POINT
 
   next: () ->
     @cursor = 1 + @cursor
-eva = (array) ->
+eva_with_map = (array, map) ->
   base_cursor = retack.cursor()
   first_retack_point = new RETACK_POINT array
+  first_retack_point.local_variable_map = map
   retack.push first_retack_point
   while retack.cursor() > base_cursor
     retack_point = retack.pop()
@@ -275,6 +275,8 @@ eva = (array) ->
     eva_dispatch(jo, retack_point)
     argack.print()
   return first_retack_point
+eva = (array) ->
+  eva_with_map array, new Map()
 eva_dispatch = (jo, retack_point) ->
 
   if function_p(jo)
@@ -289,14 +291,14 @@ eva_dispatch = (jo, retack_point) ->
   else if array_p jo._sad
     retack.push new RETACK_POINT(jo._sad)
 
-  else if array_p jo._into_local_variable
-    eva_into_local_variable \
-      jo._into_local_variable,
+  else if array_p jo._into
+    eva_into \
+      jo._into,
       retack_point.local_variable_map
 
-  else if array_p jo._out_local_variable
-    eva_out_local_variable \
-      jo._out_local_variable,
+  else if array_p jo._out
+    eva_out \
+      jo._out,
       retack_point.local_variable_map
 
   else
@@ -314,8 +316,8 @@ eva_primitive_function = (jo, retack_point) ->
 into = () ->
   array = []
   array.push(element) for element in arguments
-  _into_local_variable: array
-eva_into_local_variable = (array, local_variable_map) ->
+  _into: array
+eva_into = (array, local_variable_map) ->
   i = 0
   while i < array.length
     local_variable_map.set array[(array.length - i) - 1], argack.pop()
@@ -323,15 +325,15 @@ eva_into_local_variable = (array, local_variable_map) ->
 out = () ->
   array = []
   array.push(element) for element in arguments
-  _out_local_variable: array
-eva_out_local_variable = (array, local_variable_map) ->
+  _out: array
+eva_out = (array, local_variable_map) ->
   for name_string in array
     do (name_string) ->
     result = local_variable_map.get(name_string)
     if result is undefined
       # ><><><
       # better error handling
-      orz "- in eva_out_local_variable\n",
+      orz "- in eva_out\n",
           "  meet undefined name : ", name_string
     else
       argack.push(result)
@@ -359,17 +361,121 @@ swap = sad [
   (into "1", "2")
   (out "2", "1")
 ]
-andp = (bool1, bool2) -> bool1 and bool2
-orp  = (bool1, bool2) -> bool1 or bool2
-get = (array, index) -> array[index]
-set = (array, index, value) -> array[index] = value
+anp = (bool1, bool2) -> bool1 and bool2
+orp = (bool1, bool2) -> bool1 or  bool2
+nop = (bool) -> not bool
+va = (string) -> _va: string
+guard = (array) ->
+  _guard: array
+antecedent_actual_length = (antecedent) ->
+  index = 0
+  counter = 0
+  while index < antecedent.length
+    if (object_p antecedent[counter]) and
+       (array_p antecedent[counter]._guard)
+      # do nothing
+    else
+      counter = 1 + counter
+    index = 1 + index
+  counter
+unify_array = (source, pattern, map) ->
+  index = 0
+  while index < pattern.length
+    success = unify_dispatch source[index], pattern[index], map
+    if success
+      # do nothing
+    else
+      return false
+    index = 1 + index
+  return map
+unify_dispatch = (source, pattern, map) ->
+  if array_p pattern
+    unify_array source, pattern, map
+  else if atom_p pattern
+    if source is pattern
+      return map
+    else
+      return false
+  else if string_p pattern._va
+    if map.has pattern._va
+      if source is map.get pattern._va
+        return map
+      else
+        return false
+    else
+      map.set pattern._va, source
+      return map
+  else if array_p pattern._guard
+    eva_with_map pattern._guard, map
+    result = argack.pop()
+    if result
+      return map
+    else
+      return false
+  else
+    orz "unify_dispatch fail\n",
+        "source:", source, "\n"
+        "pattern:", pattern, "\n"
+        "map:", map
+unify = (source, pattern) ->
+  result_map = new Map()
+  success = unify_dispatch source, pattern, result_map
+  if success
+    result_map
+  else
+    false
+match = (sequent_array) ->
+  index = 0
+  while index + 1 < sequent_array.length
+    antecedent = sequent_array[index]
+    succedent = sequent_array[index + 1]
+    length = antecedent_actual_length antecedent
+    argument_array = argack.n_tos length
+    result_map =
+      unify argument_array, antecedent
+    if result_map
+      argack.n_pop length
+      new_retack_point = new RETACK_POINT(succedent)
+      new_retack_point.local_variable_map = result_map
+      retack.push new_retack_point
+      return undefined
+    index = 2 + index
+  orz "match fail\n",
+      "sequent_array:", sequent_array
+get = (array, index) ->
+  array[index]
+
+set = (array, index, value) ->
+  # be careful about side-effect
+  array[index] = value
+  return undefined
+length = (array) -> array.length
 concat = (array1, array2) ->
   array1.concat array2
+reverse = (array) ->
+  result = []
+  result.push(element) for element in array
+  return result.reverse()
 apply = (array) ->
-  retack.push new RETACK_POINT(array)
-  return undefined
-ifte = (predicate_array, true_array, false_array) ->
-
+  if array.length is 0
+    return undefined
+  else
+    retack.push new RETACK_POINT(array)
+    return undefined
+cond = (sequent_array) ->
+  index = 0
+  while index + 1 < sequent_array.length
+    antecedent = sequent_array[index]
+    succedent = sequent_array[index + 1]
+    eva antecedent
+    result = argack.pop()
+    if result
+      new_retack_point = new RETACK_POINT(succedent)
+      retack.push new_retack_point
+      return undefined
+    index = 2 + index
+  orz "cond fail\n",
+      "sequent_array:", sequent_array
 map = (argument_array, function_array) ->
 
 
@@ -393,9 +499,6 @@ ya = (object, message) ->
 add = (a, b) -> a + b
 sub = (a, b) -> a - b
 
-add1 = (a) -> a + 1
-sub1 = (a) -> a - 1
-
 mul = (a, b) -> a * b
 div = (a, b) -> a / b
 mod = (a, b) -> a % b
@@ -409,20 +512,52 @@ neg = (a) -> - a
 max = (a, b) -> Math.max a, b
 min = (a, b) -> Math.min a, b
 eq   = (value1, value2) -> value1 is value2
-le   = (value1, value2) -> value1 <  value2
+lt   = (value1, value2) -> value1 <  value2
 gt   = (value1, value2) -> value1 >  value2
-leeq = (value1, value2) -> value1 <= value2
+lteq = (value1, value2) -> value1 <= value2
 gteq = (value1, value2) -> value1 >= value2
 
-# do ->
-#   eva [
-#     [3, dup, dup], [add, add], concat, apply
-#   ]
-module.exports = {
-  in_node, in_browser,
-  function_p, array_p, object_p, atom_p, string_p
-  cat, orz, asr
-  STACK, HASH_TABLE
-  argack, retack
-  sad, into, out, ya, eva
-}
+do ->
+  eva [
+    [3, dup, dup], [add, add], concat, apply
+    [], apply
+
+    [1, 2, 3]
+    dup, reverse
+    dup, length
+
+    [4, 5, 6]
+    dup, 1, 666, set
+
+    666, 66
+    1
+
+    [[2]
+     [4, 5, 6]
+
+     [666, 1]
+     [4, 5, 6]
+
+     [(va "1")
+      (guard [
+        (out "1"), 2
+        gt])]
+     [(out "1"), (out "1")
+      (out "1"), (out "1")]
+
+     [(va "1")
+      (guard [
+        (out "1"), 2
+        lt])]
+     [(out "1"), dup, add]
+
+    ],match
+
+  [[false]
+   [321]
+
+   [true]
+   [123]
+  ],cond
+
+  ]

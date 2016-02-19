@@ -1,6 +1,7 @@
 #+TITLE:  sad coffee
 #+AUTHOR: 謝宇恆 / XIE Yuheng
 #+PROPERTY: tangle sad.coffee
+- recursive combinator
 - really in need of a better org-mode tangle
 - STACK::print should return array of string
   instead of printing thing
@@ -11,6 +12,10 @@
 * todo
 
 * note
+
+*** beware of coffee
+
+    - can not return from for ... do ... loop
 
 *** beware of side-effect
 
@@ -128,12 +133,6 @@
       console.assert.apply(console, arguments)
     #+end_src
 
-*** Array
-
-    #+begin_src coffee
-    Array::last = () -> this[@length - 1]
-    #+end_src
-
 *** STACK
 
     #+begin_src coffee
@@ -174,7 +173,7 @@
         while (n > 0)
           array.push(@array[@array.length - n])
           n = n - 1
-        array.reverse()
+        array
 
       is_empty: () ->
         @array.length is 0
@@ -353,12 +352,13 @@
         @cursor = 1 + @cursor
     #+end_src
 
-*** eva
+*** eva_with_map
 
     #+begin_src coffee
-    eva = (array) ->
+    eva_with_map = (array, map) ->
       base_cursor = retack.cursor()
       first_retack_point = new RETACK_POINT array
+      first_retack_point.local_variable_map = map
       retack.push first_retack_point
       while retack.cursor() > base_cursor
         retack_point = retack.pop()
@@ -369,6 +369,13 @@
         eva_dispatch(jo, retack_point)
         argack.print()
       return first_retack_point
+    #+end_src
+
+*** eva
+
+    #+begin_src coffee
+    eva = (array) ->
+      eva_with_map array, new Map()
     #+end_src
 
 *** eva_dispatch
@@ -388,19 +395,20 @@
       else if array_p jo._sad
         retack.push new RETACK_POINT(jo._sad)
 
-      else if array_p jo._into_local_variable
-        eva_into_local_variable \
-          jo._into_local_variable,
+      else if array_p jo._into
+        eva_into \
+          jo._into,
           retack_point.local_variable_map
 
-      else if array_p jo._out_local_variable
-        eva_out_local_variable \
-          jo._out_local_variable,
+      else if array_p jo._out
+        eva_out \
+          jo._out,
           retack_point.local_variable_map
 
       else
         argack.push jo
     #+end_src
+
 
 *** eva_primitive_function
 
@@ -417,24 +425,26 @@
         argack.push(result)
     #+end_src
 
+
 *** into
 
     #+begin_src coffee
     into = () ->
       array = []
       array.push(element) for element in arguments
-      _into_local_variable: array
+      _into: array
     #+end_src
 
-*** eva_into_local_variable
+*** eva_into
 
     #+begin_src coffee
-    eva_into_local_variable = (array, local_variable_map) ->
+    eva_into = (array, local_variable_map) ->
       i = 0
       while i < array.length
         local_variable_map.set array[(array.length - i) - 1], argack.pop()
         i = 1 + i
     #+end_src
+
 
 *** out
 
@@ -442,24 +452,25 @@
     out = () ->
       array = []
       array.push(element) for element in arguments
-      _out_local_variable: array
+      _out: array
     #+end_src
 
-*** eva_out_local_variable
+*** eva_out
 
     #+begin_src coffee
-    eva_out_local_variable = (array, local_variable_map) ->
+    eva_out = (array, local_variable_map) ->
       for name_string in array
         do (name_string) ->
         result = local_variable_map.get(name_string)
         if result is undefined
           # ><><><
           # better error handling
-          orz "- in eva_out_local_variable\n",
+          orz "- in eva_out\n",
               "  meet undefined name : ", name_string
         else
           argack.push(result)
     #+end_src
+
 
 *** sad
 
@@ -502,22 +513,149 @@
 *** predicate
 
     #+begin_src coffee
-    andp = (bool1, bool2) -> bool1 and bool2
-    orp  = (bool1, bool2) -> bool1 or bool2
+    anp = (bool1, bool2) -> bool1 and bool2
+    orp = (bool1, bool2) -> bool1 or  bool2
+    nop = (bool) -> not bool
     #+end_src
 
-* array & combinator
+* match
 
-*** note
+*** va
 
-    - array is the main data structure
-      combinator view array as function
+    #+begin_src coffee
+    va = (string) -> _va: string
+    #+end_src
+
+*** guard
+
+    #+begin_src coffee
+    guard = (array) ->
+      _guard: array
+    #+end_src
+
+*** antecedent_actual_length
+
+    #+begin_src coffee
+    antecedent_actual_length = (antecedent) ->
+      index = 0
+      counter = 0
+      while index < antecedent.length
+        if (object_p antecedent[counter]) and
+           (array_p antecedent[counter]._guard)
+          # do nothing
+        else
+          counter = 1 + counter
+        index = 1 + index
+      counter
+    #+end_src
+
+*** unify_array
+
+    #+begin_src coffee
+    unify_array = (source, pattern, map) ->
+      index = 0
+      while index < pattern.length
+        success = unify_dispatch source[index], pattern[index], map
+        if success
+          # do nothing
+        else
+          return false
+        index = 1 + index
+      return map
+    #+end_src
+
+*** >< unify_dispatch
+
+    - ><><><
+      should use deep equal
+
+    #+begin_src coffee
+    unify_dispatch = (source, pattern, map) ->
+      if array_p pattern
+        unify_array source, pattern, map
+      else if atom_p pattern
+        if source is pattern
+          return map
+        else
+          return false
+      else if string_p pattern._va
+        if map.has pattern._va
+          if source is map.get pattern._va
+            return map
+          else
+            return false
+        else
+          map.set pattern._va, source
+          return map
+      else if array_p pattern._guard
+        eva_with_map pattern._guard, map
+        result = argack.pop()
+        if result
+          return map
+        else
+          return false
+      else
+        orz "unify_dispatch fail\n",
+            "source:", source, "\n"
+            "pattern:", pattern, "\n"
+            "map:", map
+    #+end_src
+
+*** unify
+
+    - map passing
+
+    #+begin_src coffee
+    unify = (source, pattern) ->
+      result_map = new Map()
+      success = unify_dispatch source, pattern, result_map
+      if success
+        result_map
+      else
+        false
+    #+end_src
+
+*** match
+
+    #+begin_src coffee
+    match = (sequent_array) ->
+      index = 0
+      while index + 1 < sequent_array.length
+        antecedent = sequent_array[index]
+        succedent = sequent_array[index + 1]
+        length = antecedent_actual_length antecedent
+        argument_array = argack.n_tos length
+        result_map =
+          unify argument_array, antecedent
+        if result_map
+          argack.n_pop length
+          new_retack_point = new RETACK_POINT(succedent)
+          new_retack_point.local_variable_map = result_map
+          retack.push new_retack_point
+          return undefined
+        index = 2 + index
+      orz "match fail\n",
+          "sequent_array:", sequent_array
+    #+end_src
+
+* array
 
 *** set & get
 
     #+begin_src coffee
-    get = (array, index) -> array[index]
-    set = (array, index, value) -> array[index] = value
+    get = (array, index) ->
+      array[index]
+
+    set = (array, index, value) ->
+      # be careful about side-effect
+      array[index] = value
+      return undefined
+    #+end_src
+
+*** length
+
+    #+begin_src coffee
+    length = (array) -> array.length
     #+end_src
 
 *** concat
@@ -527,25 +665,59 @@
       array1.concat array2
     #+end_src
 
+*** reverse
+
+    #+begin_src coffee
+    reverse = (array) ->
+      result = []
+      result.push(element) for element in array
+      return result.reverse()
+    #+end_src
+
+* combinator
+
 *** apply
 
     #+begin_src coffee
     apply = (array) ->
-      retack.push new RETACK_POINT(array)
-      return undefined
+      if array.length is 0
+        return undefined
+      else
+        retack.push new RETACK_POINT(array)
+        return undefined
     #+end_src
 
-*** >< ifte
+*** cond
 
     #+begin_src coffee
-    ifte = (predicate_array, true_array, false_array) ->
-
+    cond = (sequent_array) ->
+      index = 0
+      while index + 1 < sequent_array.length
+        antecedent = sequent_array[index]
+        succedent = sequent_array[index + 1]
+        eva antecedent
+        result = argack.pop()
+        if result
+          new_retack_point = new RETACK_POINT(succedent)
+          retack.push new_retack_point
+          return undefined
+        index = 2 + index
+      orz "cond fail\n",
+          "sequent_array:", sequent_array
     #+end_src
 
-*** >< map
+*** map
 
     #+begin_src coffee
     map = (argument_array, function_array) ->
+
+    #+end_src
+
+*** >< filter
+
+*** >< fold
+
+    #+begin_src coffee
 
     #+end_src
 
@@ -566,14 +738,6 @@
     #+begin_src coffee
 
     #+end_src
-
-*** >< fold
-
-    #+begin_src coffee
-
-    #+end_src
-
-*** >< filter
 
 * object
 
@@ -608,9 +772,6 @@
     add = (a, b) -> a + b
     sub = (a, b) -> a - b
 
-    add1 = (a) -> a + 1
-    sub1 = (a) -> a - 1
-
     mul = (a, b) -> a * b
     div = (a, b) -> a / b
     mod = (a, b) -> a % b
@@ -629,9 +790,9 @@
 
     #+begin_src coffee
     eq   = (value1, value2) -> value1 is value2
-    le   = (value1, value2) -> value1 <  value2
+    lt   = (value1, value2) -> value1 <  value2
     gt   = (value1, value2) -> value1 >  value2
-    leeq = (value1, value2) -> value1 <= value2
+    lteq = (value1, value2) -> value1 <= value2
     gteq = (value1, value2) -> value1 >= value2
     #+end_src
 
@@ -646,15 +807,55 @@
 * test sad
 
   #+begin_src coffee
-  # do ->
-  #   eva [
-  #     [3, dup, dup], [add, add], concat, apply
-  #   ]
+  do ->
+    eva [
+      [3, dup, dup], [add, add], concat, apply
+      [], apply
+
+      [1, 2, 3]
+      dup, reverse
+      dup, length
+
+      [4, 5, 6]
+      dup, 1, 666, set
+
+      666, 66
+      1
+
+      [[2]
+       [4, 5, 6]
+
+       [666, 1]
+       [4, 5, 6]
+
+       [(va "1")
+        (guard [
+          (out "1"), 2
+          gt])]
+       [(out "1"), (out "1")
+        (out "1"), (out "1")]
+
+       [(va "1")
+        (guard [
+          (out "1"), 2
+          lt])]
+       [(out "1"), dup, add]
+
+      ],match
+
+    [[false]
+     [321]
+
+     [true]
+     [123]
+    ],cond
+
+    ]
   #+end_src
 
 * exports
 
-  #+begin_src coffee
+  #+begin_src coffee :tangle no
   module.exports = {
     in_node, in_browser,
     function_p, array_p, object_p, atom_p, string_p
