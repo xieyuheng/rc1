@@ -19,5 +19,8 @@
   "homepage": "http://cicada-language.github.io",
   "devDependencies": {
     "gulp": "^3.9.0"
+  },
+  "dependencies": {
+    "deep-equal": "^1.0.1"
   }
 }

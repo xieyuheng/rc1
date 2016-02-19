@@ -1,3 +1,7 @@
+_equal = require "deep-equal"
+
+equal = (value1, value2) ->
+  _equal value1, value2
 in_node = () ->
   typeof module isnt "undefined"
 
@@ -119,16 +123,6 @@ class STACK
 
   is_empty: () ->
     @array.length is 0
-
-  print: () ->
-    index = 0
-    arg_list = []
-    while (index < @cursor())
-      arg_list.push(@array[index])
-      index = 1 + index
-    arg_list.unshift("  *", @cursor(), "*  --")
-    arg_list.push("--")
-    console.log.apply console, arg_list
 
 do ->
   testing_stack = new STACK()
@@ -265,16 +259,18 @@ eva_with_map = (array, map) ->
   base_cursor = retack.cursor()
   first_retack_point = new RETACK_POINT array
   first_retack_point.local_variable_map = map
-  retack.push first_retack_point
-  while retack.cursor() > base_cursor
-    retack_point = retack.pop()
-    jo = retack_point.get_current_jo()
-    if !retack_point.at_tail_position()
-      retack_point.next()
-      retack.push(retack_point)
-    eva_dispatch(jo, retack_point)
-    argack.print()
-  return first_retack_point
+  if array.length is 0
+    return first_retack_point
+  else
+    retack.push first_retack_point
+    while retack.cursor() > base_cursor
+      retack_point = retack.pop()
+      jo = retack_point.get_current_jo()
+      if !retack_point.at_tail_position()
+        retack_point.next()
+        retack.push(retack_point)
+      eva_dispatch(jo, retack_point)
+    return first_retack_point
 eva = (array) ->
   eva_with_map array, new Map()
 eva_dispatch = (jo, retack_point) ->
@@ -338,6 +334,45 @@ eva_out = (array, local_variable_map) ->
     else
       argack.push(result)
 sad = (array) -> _sad: array
+tes = (array1, array2) ->
+  cursor = argack.cursor()
+  eva array1
+  result1 = argack.n_pop (argack.cursor() - cursor)
+  cursor = argack.cursor()
+  eva array2
+  result2 = argack.n_pop (argack.cursor() - cursor)
+  success = equal result1, result2
+  if success
+    # nothing
+  else
+    orz "- tes fail\n",
+        "program1:", array1, "\n"
+        "program2:", array2, "\n"
+tes [
+], [
+]
+
+tes [
+  1, 2, 3
+], [
+  1, 2, 3
+]
+
+tes [
+  [1, 2, 3]
+], [
+  [1, 2, 3]
+]
+
+tes [
+  [1, 2, 3]
+  [1, 2, 3]
+  tes
+],[
+  [4, 5, 6]
+  [4, 5, 6]
+  tes
+]
 drop = sad [
   (into "1")
 ]
@@ -361,9 +396,154 @@ swap = sad [
   (into "1", "2")
   (out "2", "1")
 ]
+tes [
+  1, 2, swap
+], [
+  2, 1
+]
+
+tes [
+  1, 2, over
+], [
+  1, 2, 1
+]
+
+tes [
+  1, 2, tuck
+], [
+  2, 1, 2
+]
 anp = (bool1, bool2) -> bool1 and bool2
 orp = (bool1, bool2) -> bool1 or  bool2
 nop = (bool) -> not bool
+get = (array, index) ->
+  array[index]
+
+set = (array, index, value) ->
+  # be careful about side-effect
+  array[index] = value
+  return undefined
+tes [
+  [4, 5, 6]
+  dup, 0, 0, set
+  dup, 1, 1, set
+  dup, 2, 2, set
+],[
+  [0, 1, 2]
+]
+length = (array) -> array.length
+concat = (array1, array2) ->
+  array1.concat array2
+tes [
+  [1, 2, 3], dup, concat
+],[
+  [1, 2, 3, 1, 2, 3]
+]
+cons = (value, array) ->
+  result = []
+  result.push(value)
+  result.concat(array)
+
+car = (array) ->
+  array[0]
+
+cdr = (array) ->
+  result = []
+  index = 1
+  while index < array.length
+    result.push(array[index])
+    index = 1 + index
+  result
+unit = (value) ->
+  result = []
+  result.push(value)
+  result
+empty = (array) ->
+  array.length is 0
+reverse = (array) ->
+  result = []
+  result.push(element) for element in array
+  return result.reverse()
+tes [
+  [1, 2, 3]
+  dup, reverse, concat
+  dup, length
+],[
+  [1, 2, 3, 3, 2, 1]
+  6
+]
+add = (a, b) -> a + b
+sub = (a, b) -> a - b
+
+mul = (a, b) -> a * b
+div = (a, b) -> a / b
+mod = (a, b) -> a % b
+
+pow = (a, b) -> Math.pow a, b
+log = (a, b) -> Math.log a, b
+
+abs = (a) -> Math.abs a
+neg = (a) -> - a
+
+max = (a, b) -> Math.max a, b
+min = (a, b) -> Math.min a, b
+eq   = (value1, value2) -> value1 is value2
+lt   = (value1, value2) -> value1 <  value2
+gt   = (value1, value2) -> value1 >  value2
+lteq = (value1, value2) -> value1 <= value2
+gteq = (value1, value2) -> value1 >= value2
+tes [
+  2, 3, pow
+  8, eq
+], [
+  true
+]
+
+tes [
+  2, 3, pow
+  8, equal
+], [
+  true
+]
+apply = (array) ->
+  if array.length is 0
+    return undefined
+  else
+    retack.push new RETACK_POINT(array)
+    return undefined
+tes [
+  [], apply
+],[
+]
+
+tes [
+  [1], apply
+  [dup, dup], apply
+],[
+  1, 1, 1
+]
+ifte = () ->
+cond = (sequent_array) ->
+  index = 0
+  while index + 1 < sequent_array.length
+    antecedent = sequent_array[index]
+    succedent = sequent_array[index + 1]
+    eva antecedent
+    result = argack.pop()
+    if result
+      new_retack_point = new RETACK_POINT(succedent)
+      retack.push new_retack_point
+      return undefined
+    index = 2 + index
+  orz "cond fail\n",
+      "sequent_array:", sequent_array
+tes [
+  [[false], [321]
+   [true], [123]
+  ],cond
+],[
+  123
+]
 va = (string) -> _va: string
 guard = (array) ->
   _guard: array
@@ -389,13 +569,10 @@ unify_array = (source, pattern, map) ->
     index = 1 + index
   return map
 unify_dispatch = (source, pattern, map) ->
+
   if array_p pattern
     unify_array source, pattern, map
-  else if atom_p pattern
-    if source is pattern
-      return map
-    else
-      return false
+
   else if string_p pattern._va
     if map.has pattern._va
       if source is map.get pattern._va
@@ -405,6 +582,7 @@ unify_dispatch = (source, pattern, map) ->
     else
       map.set pattern._va, source
       return map
+
   else if array_p pattern._guard
     eva_with_map pattern._guard, map
     result = argack.pop()
@@ -412,11 +590,12 @@ unify_dispatch = (source, pattern, map) ->
       return map
     else
       return false
+
   else
-    orz "unify_dispatch fail\n",
-        "source:", source, "\n"
-        "pattern:", pattern, "\n"
-        "map:", map
+    if equal source, pattern
+      return map
+    else
+      return false
 unify = (source, pattern) ->
   result_map = new Map()
   success = unify_dispatch source, pattern, result_map
@@ -442,45 +621,85 @@ match = (sequent_array) ->
     index = 2 + index
   orz "match fail\n",
       "sequent_array:", sequent_array
-get = (array, index) ->
-  array[index]
+tes [
+  666
+  666, 1
 
-set = (array, index, value) ->
-  # be careful about side-effect
-  array[index] = value
-  return undefined
-length = (array) -> array.length
-concat = (array1, array2) ->
-  array1.concat array2
-reverse = (array) ->
-  result = []
-  result.push(element) for element in array
-  return result.reverse()
-apply = (array) ->
-  if array.length is 0
-    return undefined
-  else
-    retack.push new RETACK_POINT(array)
-    return undefined
-cond = (sequent_array) ->
-  index = 0
-  while index + 1 < sequent_array.length
-    antecedent = sequent_array[index]
-    succedent = sequent_array[index + 1]
-    eva antecedent
-    result = argack.pop()
-    if result
-      new_retack_point = new RETACK_POINT(succedent)
-      retack.push new_retack_point
-      return undefined
-    index = 2 + index
-  orz "cond fail\n",
-      "sequent_array:", sequent_array
+  [[2]
+   [1, 2, 3]
+
+   [666, 1]
+   [4, 5, 6]
+  ],match
+
+],[
+  666
+  [4, 5, 6]
+  apply
+]
+
+tes [
+  1, 2, 3
+  [[1, (va "2"), 4]
+   [null]
+
+   [1, (va "2"), 3]
+   [(out "2"), (out "2")]
+  ],match
+], [
+  2, dup
+]
+
+tes [
+  1, 2, 3
+  [[1, (va "2"), 4]
+   [null]
+
+   [1, (va "2"), 3]
+   [(out "2")]
+  ],match
+], [
+  2
+]
+
+tes [
+  1, 2, 3
+  [[1, (va "2"), 4]
+   [null]
+
+   [1, (va "2"), 3
+    (guard [false])]
+   [false, (out "2")]
+
+   [1, (va "2"), 3
+    (guard [true])]
+   [true, (out "2")]
+  ],match
+], [
+  true, 2
+]
+
+tes [
+  1, 2, 3
+  [[1, (va "2"), 4]
+   [null]
+
+   [1, (va "2"), 3
+    (guard [1, (out "2"), gt])]
+   [false, (out "2")]
+
+   [1, (va "2"), 3
+    (guard [1, (out "2"), lt])]
+   [true, (out "2")]
+  ],match
+], [
+  true, 2
+]
+
+
+
+
 map = (argument_array, function_array) ->
-
-
-
-
 
 ya = (object, message) ->
   if function_p object[message]
@@ -496,68 +715,35 @@ ya = (object, message) ->
   else
     argack.push(object[message])
   return undefined
-add = (a, b) -> a + b
-sub = (a, b) -> a - b
 
-mul = (a, b) -> a * b
-div = (a, b) -> a / b
-mod = (a, b) -> a % b
-
-pow = (a, b) -> Math.pow a, b
-log = (a, b) -> Math.log a, b
-
-abs = (a) -> Math.abs a
-neg = (a) -> - a
-
-max = (a, b) -> Math.max a, b
-min = (a, b) -> Math.min a, b
-eq   = (value1, value2) -> value1 is value2
-lt   = (value1, value2) -> value1 <  value2
-gt   = (value1, value2) -> value1 >  value2
-lteq = (value1, value2) -> value1 <= value2
-gteq = (value1, value2) -> value1 >= value2
-
-do ->
-  eva [
-    [3, dup, dup], [add, add], concat, apply
-    [], apply
-
-    [1, 2, 3]
-    dup, reverse
-    dup, length
-
-    [4, 5, 6]
-    dup, 1, 666, set
-
-    666, 66
-    1
-
-    [[2]
-     [4, 5, 6]
-
-     [666, 1]
-     [4, 5, 6]
-
-     [(va "1")
-      (guard [
-        (out "1"), 2
-        gt])]
-     [(out "1"), (out "1")
-      (out "1"), (out "1")]
-
-     [(va "1")
-      (guard [
-        (out "1"), 2
-        lt])]
-     [(out "1"), dup, add]
-
-    ],match
-
-  [[false]
-   [321]
-
-   [true]
-   [123]
-  ],cond
-
-  ]
+argack.print = () ->
+  index = 0
+  arg_list = []
+  while (index < argack.cursor())
+    arg_list.push(argack.array[index])
+    index = 1 + index
+  arg_list.unshift("  *", argack.cursor(), "*  --")
+  arg_list.push("--")
+  console.log.apply console, arg_list
+repl_with_map = (array, map) ->
+  base_cursor = retack.cursor()
+  first_retack_point = new RETACK_POINT array
+  first_retack_point.local_variable_map = map
+  if array.length is 0
+    return first_retack_point
+  else
+    retack.push first_retack_point
+    while retack.cursor() > base_cursor
+      retack_point = retack.pop()
+      jo = retack_point.get_current_jo()
+      if !retack_point.at_tail_position()
+        retack_point.next()
+        retack.push(retack_point)
+      eva_dispatch(jo, retack_point)
+      argack.print()
+    return first_retack_point
+repl = (array) ->
+  repl_with_map array, new Map()
+repl [
+  1, 2, 3, add, add
+]

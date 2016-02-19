@@ -1,13 +1,10 @@
 #+TITLE:  sad coffee
 #+AUTHOR: 謝宇恆 / XIE Yuheng
 #+PROPERTY: tangle sad.coffee
+- better repl
 - recursive combinator
 - really in need of a better org-mode tangle
-- STACK::print should return array of string
-  instead of printing thing
-  thus name change to STACK::report
 - delimited continuation
-- a way to do test
 - some array processing function as macro
 * todo
 
@@ -16,6 +13,8 @@
 *** beware of coffee
 
     - can not return from for ... do ... loop
+      use 'while' for big loop
+      use 'for' for small loop only
 
 *** beware of side-effect
 
@@ -25,6 +24,10 @@
       if you pass array to sub-function
       such side-effect will destroy the array
 
+*** beware of function interface
+
+    - the function interface must be strict
+
 *** asynchronous
 
     - asynchronous code should only be used for IO
@@ -32,6 +35,15 @@
       the callback depends on the finishing of asynchronous IO
 
 * helper
+
+*** require
+
+    #+begin_src coffee
+    _equal = require "deep-equal"
+
+    equal = (value1, value2) ->
+      _equal value1, value2
+    #+end_src
 
 *** basic predicate
 
@@ -177,16 +189,6 @@
 
       is_empty: () ->
         @array.length is 0
-
-      print: () ->
-        index = 0
-        arg_list = []
-        while (index < @cursor())
-          arg_list.push(@array[index])
-          index = 1 + index
-        arg_list.unshift("  *", @cursor(), "*  --")
-        arg_list.push("--")
-        console.log.apply console, arg_list
 
     do ->
       testing_stack = new STACK()
@@ -359,16 +361,18 @@
       base_cursor = retack.cursor()
       first_retack_point = new RETACK_POINT array
       first_retack_point.local_variable_map = map
-      retack.push first_retack_point
-      while retack.cursor() > base_cursor
-        retack_point = retack.pop()
-        jo = retack_point.get_current_jo()
-        if !retack_point.at_tail_position()
-          retack_point.next()
-          retack.push(retack_point)
-        eva_dispatch(jo, retack_point)
-        argack.print()
-      return first_retack_point
+      if array.length is 0
+        return first_retack_point
+      else
+        retack.push first_retack_point
+        while retack.cursor() > base_cursor
+          retack_point = retack.pop()
+          jo = retack_point.get_current_jo()
+          if !retack_point.at_tail_position()
+            retack_point.next()
+            retack.push(retack_point)
+          eva_dispatch(jo, retack_point)
+        return first_retack_point
     #+end_src
 
 *** eva
@@ -478,6 +482,59 @@
     sad = (array) -> _sad: array
     #+end_src
 
+* tes
+
+*** note
+
+*** tes
+
+    #+begin_src coffee
+    tes = (array1, array2) ->
+      cursor = argack.cursor()
+      eva array1
+      result1 = argack.n_pop (argack.cursor() - cursor)
+      cursor = argack.cursor()
+      eva array2
+      result2 = argack.n_pop (argack.cursor() - cursor)
+      success = equal result1, result2
+      if success
+        # nothing
+      else
+        orz "- tes fail\n",
+            "program1:", array1, "\n"
+            "program2:", array2, "\n"
+    #+end_src
+
+*** test
+
+    #+begin_src coffee
+    tes [
+    ], [
+    ]
+
+    tes [
+      1, 2, 3
+    ], [
+      1, 2, 3
+    ]
+
+    tes [
+      [1, 2, 3]
+    ], [
+      [1, 2, 3]
+    ]
+
+    tes [
+      [1, 2, 3]
+      [1, 2, 3]
+      tes
+    ],[
+      [4, 5, 6]
+      [4, 5, 6]
+      tes
+    ]
+    #+end_src
+
 * stack
 
 *** basic
@@ -508,6 +565,28 @@
     ]
     #+end_src
 
+*** test
+
+    #+begin_src coffee
+    tes [
+      1, 2, swap
+    ], [
+      2, 1
+    ]
+
+    tes [
+      1, 2, over
+    ], [
+      1, 2, 1
+    ]
+
+    tes [
+      1, 2, tuck
+    ], [
+      2, 1, 2
+    ]
+    #+end_src
+
 * bool
 
 *** predicate
@@ -516,126 +595,6 @@
     anp = (bool1, bool2) -> bool1 and bool2
     orp = (bool1, bool2) -> bool1 or  bool2
     nop = (bool) -> not bool
-    #+end_src
-
-* match
-
-*** va
-
-    #+begin_src coffee
-    va = (string) -> _va: string
-    #+end_src
-
-*** guard
-
-    #+begin_src coffee
-    guard = (array) ->
-      _guard: array
-    #+end_src
-
-*** antecedent_actual_length
-
-    #+begin_src coffee
-    antecedent_actual_length = (antecedent) ->
-      index = 0
-      counter = 0
-      while index < antecedent.length
-        if (object_p antecedent[counter]) and
-           (array_p antecedent[counter]._guard)
-          # do nothing
-        else
-          counter = 1 + counter
-        index = 1 + index
-      counter
-    #+end_src
-
-*** unify_array
-
-    #+begin_src coffee
-    unify_array = (source, pattern, map) ->
-      index = 0
-      while index < pattern.length
-        success = unify_dispatch source[index], pattern[index], map
-        if success
-          # do nothing
-        else
-          return false
-        index = 1 + index
-      return map
-    #+end_src
-
-*** >< unify_dispatch
-
-    - ><><><
-      should use deep equal
-
-    #+begin_src coffee
-    unify_dispatch = (source, pattern, map) ->
-      if array_p pattern
-        unify_array source, pattern, map
-      else if atom_p pattern
-        if source is pattern
-          return map
-        else
-          return false
-      else if string_p pattern._va
-        if map.has pattern._va
-          if source is map.get pattern._va
-            return map
-          else
-            return false
-        else
-          map.set pattern._va, source
-          return map
-      else if array_p pattern._guard
-        eva_with_map pattern._guard, map
-        result = argack.pop()
-        if result
-          return map
-        else
-          return false
-      else
-        orz "unify_dispatch fail\n",
-            "source:", source, "\n"
-            "pattern:", pattern, "\n"
-            "map:", map
-    #+end_src
-
-*** unify
-
-    - map passing
-
-    #+begin_src coffee
-    unify = (source, pattern) ->
-      result_map = new Map()
-      success = unify_dispatch source, pattern, result_map
-      if success
-        result_map
-      else
-        false
-    #+end_src
-
-*** match
-
-    #+begin_src coffee
-    match = (sequent_array) ->
-      index = 0
-      while index + 1 < sequent_array.length
-        antecedent = sequent_array[index]
-        succedent = sequent_array[index + 1]
-        length = antecedent_actual_length antecedent
-        argument_array = argack.n_tos length
-        result_map =
-          unify argument_array, antecedent
-        if result_map
-          argack.n_pop length
-          new_retack_point = new RETACK_POINT(succedent)
-          new_retack_point.local_variable_map = result_map
-          retack.push new_retack_point
-          return undefined
-        index = 2 + index
-      orz "match fail\n",
-          "sequent_array:", sequent_array
     #+end_src
 
 * array
@@ -652,6 +611,19 @@
       return undefined
     #+end_src
 
+*** test
+
+    #+begin_src coffee
+    tes [
+      [4, 5, 6]
+      dup, 0, 0, set
+      dup, 1, 1, set
+      dup, 2, 2, set
+    ],[
+      [0, 1, 2]
+    ]
+    #+end_src
+
 *** length
 
     #+begin_src coffee
@@ -665,6 +637,58 @@
       array1.concat array2
     #+end_src
 
+*** test
+
+    #+begin_src coffee
+    tes [
+      [1, 2, 3], dup, concat
+    ],[
+      [1, 2, 3, 1, 2, 3]
+    ]
+    #+end_src
+
+*** cons & car & cdr
+
+    - for I am embeding the syntax in js
+      I use js array as list
+      and do not care about the time here
+      if needed
+      a compiled version can use true list
+
+    #+begin_src coffee
+    cons = (value, array) ->
+      result = []
+      result.push(value)
+      result.concat(array)
+
+    car = (array) ->
+      array[0]
+
+    cdr = (array) ->
+      result = []
+      index = 1
+      while index < array.length
+        result.push(array[index])
+        index = 1 + index
+      result
+    #+end_src
+
+*** unit
+
+    #+begin_src coffee
+    unit = (value) ->
+      result = []
+      result.push(value)
+      result
+    #+end_src
+
+*** empty
+
+    #+begin_src coffee
+    empty = (array) ->
+      array.length is 0
+    #+end_src
+
 *** reverse
 
     #+begin_src coffee
@@ -674,90 +698,17 @@
       return result.reverse()
     #+end_src
 
-* combinator
-
-*** apply
+*** test
 
     #+begin_src coffee
-    apply = (array) ->
-      if array.length is 0
-        return undefined
-      else
-        retack.push new RETACK_POINT(array)
-        return undefined
-    #+end_src
-
-*** cond
-
-    #+begin_src coffee
-    cond = (sequent_array) ->
-      index = 0
-      while index + 1 < sequent_array.length
-        antecedent = sequent_array[index]
-        succedent = sequent_array[index + 1]
-        eva antecedent
-        result = argack.pop()
-        if result
-          new_retack_point = new RETACK_POINT(succedent)
-          retack.push new_retack_point
-          return undefined
-        index = 2 + index
-      orz "cond fail\n",
-          "sequent_array:", sequent_array
-    #+end_src
-
-*** map
-
-    #+begin_src coffee
-    map = (argument_array, function_array) ->
-
-    #+end_src
-
-*** >< filter
-
-*** >< fold
-
-    #+begin_src coffee
-
-    #+end_src
-
-*** >< primrec
-
-    #+begin_src coffee
-
-    #+end_src
-
-*** >< linrec
-
-    #+begin_src coffee
-
-    #+end_src
-
-*** >< binrec
-
-    #+begin_src coffee
-
-    #+end_src
-
-* object
-
-*** massage passing
-
-    #+begin_src coffee
-    ya = (object, message) ->
-      if function_p object[message]
-        arg_length = object[message].length
-        arg_list = []
-        while arg_length isnt 0
-          arg_list.push(argack.pop())
-          arg_length = arg_length - 1
-        arg_list.reverse()
-        result = object[message].apply(object, arg_list)
-        if result isnt undefined
-          argack.push(result)
-      else
-        argack.push(object[message])
-      return undefined
+    tes [
+      [1, 2, 3]
+      dup, reverse, concat
+      dup, length
+    ],[
+      [1, 2, 3, 3, 2, 1]
+      6
+    ]
     #+end_src
 
 * number
@@ -796,6 +747,339 @@
     gteq = (value1, value2) -> value1 >= value2
     #+end_src
 
+*** test
+
+    #+begin_src coffee
+    tes [
+      2, 3, pow
+      8, eq
+    ], [
+      true
+    ]
+
+    tes [
+      2, 3, pow
+      8, equal
+    ], [
+      true
+    ]
+    #+end_src
+
+* combinator
+
+*** apply
+
+    #+begin_src coffee
+    apply = (array) ->
+      if array.length is 0
+        return undefined
+      else
+        retack.push new RETACK_POINT(array)
+        return undefined
+    #+end_src
+
+*** test
+
+    #+begin_src coffee
+    tes [
+      [], apply
+    ],[
+    ]
+
+    tes [
+      [1], apply
+      [dup, dup], apply
+    ],[
+      1, 1, 1
+    ]
+    #+end_src
+
+*** >< ifte
+
+    #+begin_src coffee
+    ifte = () ->
+    #+end_src
+
+*** cond
+
+    #+begin_src coffee
+    cond = (sequent_array) ->
+      index = 0
+      while index + 1 < sequent_array.length
+        antecedent = sequent_array[index]
+        succedent = sequent_array[index + 1]
+        eva antecedent
+        result = argack.pop()
+        if result
+          new_retack_point = new RETACK_POINT(succedent)
+          retack.push new_retack_point
+          return undefined
+        index = 2 + index
+      orz "cond fail\n",
+          "sequent_array:", sequent_array
+    #+end_src
+
+*** test
+
+    #+begin_src coffee
+    tes [
+      [[false], [321]
+       [true], [123]
+      ],cond
+    ],[
+      123
+    ]
+    #+end_src
+
+*** match
+
+***** va
+
+      #+begin_src coffee
+      va = (string) -> _va: string
+      #+end_src
+
+***** guard
+
+      #+begin_src coffee
+      guard = (array) ->
+        _guard: array
+      #+end_src
+
+***** antecedent_actual_length
+
+      #+begin_src coffee
+      antecedent_actual_length = (antecedent) ->
+        index = 0
+        counter = 0
+        while index < antecedent.length
+          if (object_p antecedent[counter]) and
+             (array_p antecedent[counter]._guard)
+            # do nothing
+          else
+            counter = 1 + counter
+          index = 1 + index
+        counter
+      #+end_src
+
+***** unify_array
+
+      #+begin_src coffee
+      unify_array = (source, pattern, map) ->
+        index = 0
+        while index < pattern.length
+          success = unify_dispatch source[index], pattern[index], map
+          if success
+            # do nothing
+          else
+            return false
+          index = 1 + index
+        return map
+      #+end_src
+
+***** unify_dispatch
+
+      #+begin_src coffee
+      unify_dispatch = (source, pattern, map) ->
+
+        if array_p pattern
+          unify_array source, pattern, map
+
+        else if string_p pattern._va
+          if map.has pattern._va
+            if source is map.get pattern._va
+              return map
+            else
+              return false
+          else
+            map.set pattern._va, source
+            return map
+
+        else if array_p pattern._guard
+          eva_with_map pattern._guard, map
+          result = argack.pop()
+          if result
+            return map
+          else
+            return false
+
+        else
+          if equal source, pattern
+            return map
+          else
+            return false
+      #+end_src
+
+***** unify
+
+      - map passing
+
+      #+begin_src coffee
+      unify = (source, pattern) ->
+        result_map = new Map()
+        success = unify_dispatch source, pattern, result_map
+        if success
+          result_map
+        else
+          false
+      #+end_src
+
+***** match
+
+      #+begin_src coffee
+      match = (sequent_array) ->
+        index = 0
+        while index + 1 < sequent_array.length
+          antecedent = sequent_array[index]
+          succedent = sequent_array[index + 1]
+          length = antecedent_actual_length antecedent
+          argument_array = argack.n_tos length
+          result_map =
+            unify argument_array, antecedent
+          if result_map
+            argack.n_pop length
+            new_retack_point = new RETACK_POINT(succedent)
+            new_retack_point.local_variable_map = result_map
+            retack.push new_retack_point
+            return undefined
+          index = 2 + index
+        orz "match fail\n",
+            "sequent_array:", sequent_array
+      #+end_src
+
+*** test
+
+    #+begin_src coffee
+    tes [
+      666
+      666, 1
+
+      [[2]
+       [1, 2, 3]
+
+       [666, 1]
+       [4, 5, 6]
+      ],match
+
+    ],[
+      666
+      [4, 5, 6]
+      apply
+    ]
+
+    tes [
+      1, 2, 3
+      [[1, (va "2"), 4]
+       [null]
+
+       [1, (va "2"), 3]
+       [(out "2"), (out "2")]
+      ],match
+    ], [
+      2, dup
+    ]
+
+    tes [
+      1, 2, 3
+      [[1, (va "2"), 4]
+       [null]
+
+       [1, (va "2"), 3]
+       [(out "2")]
+      ],match
+    ], [
+      2
+    ]
+
+    tes [
+      1, 2, 3
+      [[1, (va "2"), 4]
+       [null]
+
+       [1, (va "2"), 3
+        (guard [false])]
+       [false, (out "2")]
+
+       [1, (va "2"), 3
+        (guard [true])]
+       [true, (out "2")]
+      ],match
+    ], [
+      true, 2
+    ]
+
+    tes [
+      1, 2, 3
+      [[1, (va "2"), 4]
+       [null]
+
+       [1, (va "2"), 3
+        (guard [1, (out "2"), gt])]
+       [false, (out "2")]
+
+       [1, (va "2"), 3
+        (guard [1, (out "2"), lt])]
+       [true, (out "2")]
+      ],match
+    ], [
+      true, 2
+    ]
+    #+end_src
+
+*** >< linrec
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< binrec
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< primrec
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< fold
+
+    #+begin_src coffee
+
+    #+end_src
+
+*** >< filter
+
+*** >< map
+
+    #+begin_src coffee
+    map = (argument_array, function_array) ->
+
+    #+end_src
+
+* object
+
+*** massage passing
+
+    #+begin_src coffee
+    ya = (object, message) ->
+      if function_p object[message]
+        arg_length = object[message].length
+        arg_list = []
+        while arg_length isnt 0
+          arg_list.push(argack.pop())
+          arg_length = arg_length - 1
+        arg_list.reverse()
+        result = object[message].apply(object, arg_list)
+        if result isnt undefined
+          argack.push(result)
+      else
+        argack.push(object[message])
+      return undefined
+    #+end_src
+
 * string
 
 *** >< string_append
@@ -804,54 +1088,58 @@
 
     #+end_src
 
-* test sad
+* repl
 
-  #+begin_src coffee
-  do ->
-    eva [
-      [3, dup, dup], [add, add], concat, apply
-      [], apply
+*** argack.print
 
-      [1, 2, 3]
-      dup, reverse
-      dup, length
+    #+begin_src coffee
+    argack.print = () ->
+      index = 0
+      arg_list = []
+      while (index < argack.cursor())
+        arg_list.push(argack.array[index])
+        index = 1 + index
+      arg_list.unshift("  *", argack.cursor(), "*  --")
+      arg_list.push("--")
+      console.log.apply console, arg_list
+    #+end_src
 
-      [4, 5, 6]
-      dup, 1, 666, set
+*** repl_with_map
 
-      666, 66
-      1
+    #+begin_src coffee
+    repl_with_map = (array, map) ->
+      base_cursor = retack.cursor()
+      first_retack_point = new RETACK_POINT array
+      first_retack_point.local_variable_map = map
+      if array.length is 0
+        return first_retack_point
+      else
+        retack.push first_retack_point
+        while retack.cursor() > base_cursor
+          retack_point = retack.pop()
+          jo = retack_point.get_current_jo()
+          if !retack_point.at_tail_position()
+            retack_point.next()
+            retack.push(retack_point)
+          eva_dispatch(jo, retack_point)
+          argack.print()
+        return first_retack_point
+    #+end_src
 
-      [[2]
-       [4, 5, 6]
+*** repl
 
-       [666, 1]
-       [4, 5, 6]
+    #+begin_src coffee
+    repl = (array) ->
+      repl_with_map array, new Map()
+    #+end_src
 
-       [(va "1")
-        (guard [
-          (out "1"), 2
-          gt])]
-       [(out "1"), (out "1")
-        (out "1"), (out "1")]
+*** test
 
-       [(va "1")
-        (guard [
-          (out "1"), 2
-          lt])]
-       [(out "1"), dup, add]
-
-      ],match
-
-    [[false]
-     [321]
-
-     [true]
-     [123]
-    ],cond
-
+    #+begin_src coffee
+    repl [
+      1, 2, 3, add, add
     ]
-  #+end_src
+    #+end_src
 
 * exports
 
