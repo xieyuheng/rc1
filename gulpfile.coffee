@@ -2,7 +2,7 @@ gulp = require("gulp")
 { execSync } = require("child_process")
 
 org_array = [
-  "src/sad.org"
+  "src/recursive-combinator.org"
 ]
 
 run = () ->
@@ -62,20 +62,13 @@ gulp.task "default", () ->
   console.log("-", task_name) \
   for task_name in Object.keys(gulp.tasks).slice(1)
 
-gulp.task "build", () ->
-  console.log("- coffeeing: src/")
-  run("coffee --compile --output lib/ src/")
-
 gulp.task "tangle", () ->
   tangle org for org in org_array
 
 gulp.task "run", () ->
-  run("coffee src/sad.coffee")
+  run("node src/recursive-combinator.js")
 
-gulp.task "dev", [ "tangle", "build", "run" ], () ->
-
-gulp.task "test", [ "tangle", "build" ] () ->
-  run("coffee src/sad.coffee")
+gulp.task "dev", [ "tangle", "run" ], () ->
 
 gulp.task "clean", () ->
   console.log("cleaning *~")

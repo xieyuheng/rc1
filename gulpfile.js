@@ -6,7 +6,7 @@
 
   execSync = require("child_process").execSync;
 
-  org_array = ["src/sad.org"];
+  org_array = ["src/recursive-combinator.org"];
 
   run = function() {
     var fn, i, len, result, results, string;
@@ -97,7 +97,7 @@
   });
 
   gulp.task("run", function() {
-    return run("coffee src/sad.coffee");
+    return run("node src/recursive-combinator.js");
   });
 
   gulp.task("dev", ["tangle", "build", "run"], function() {});
