@@ -440,9 +440,8 @@ function neg (a) { return -a; }
 function max (a, b) { return Math.max(a, b); }
 function min (a, b) { return Math.min(a, b); }
 function and (bool1, bool2) { return bool1 && bool2; }
-function or (bool1, bool2) { return bool1 || bool2; }
+function or  (bool1, bool2) { return bool1 || bool2; }
 function not (bool) { return !bool; }
-
 function eq   (value1, value2) { return value1 === value2; }
 function lt   (value1, value2) { return value1 <  value2 ; }
 function gt   (value1, value2) { return value1 >  value2 ; }
@@ -455,6 +454,7 @@ tes ([
   true,
 ]);
 
+// the deep-equal
 tes ([
   2, 3, pow,
   8, equal,
@@ -677,9 +677,9 @@ tes ([
 ]);
 function array_primrec (base_array, after_array) {
   apply ([
-    [ dup, empty ],
+    [dup, empty],
     base_array,
-    [ dup, car, swap, cdr ],
+    [dup, car, swap, cdr],
     after_array,
     linrec,
   ]);
@@ -712,7 +712,18 @@ tes ([
 ],[
   [true, true, true, true, false, false, false, false]
 ]);
-
+function fold (base, binfun) {
+  apply ([
+    [drop, base],
+    [binfun, apply],
+    array_primrec
+  ]);
+}
+tes ([
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0, [add], fold
+],[
+  55
+]);
 function ya (object, message) {
   if (function_p (object[message])) {
     let arg_length = object[message].length;
@@ -731,6 +742,7 @@ function ya (object, message) {
     argack.push (object[message]);
   }
 }
+
 
 argack.print = function () {
   let index = 0;
@@ -760,7 +772,9 @@ function repl (array, map) {
   }
 }
 repl ([
-  [1, 2, 3, 4, 5, 6, 7, 8], [5, lt], map
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  0, [add], fold,
+  1, [2], cons
 ]);
 // module.exports = {
 // };

@@ -1,15 +1,20 @@
 #+TITLE:  recursive combinator
 #+AUTHOR: 謝宇恆 / XIE Yuheng
 #+PROPERTY: tangle recursive-combinator.js
-- really in need of a better org-mode tangle
-- delimited continuation
-- some array processing function as macro
+
 * todo
-
+  - better imperative programming support
+  - note about what is type
+  - algebraic data type in javascript
+    pattern match without named variables
+  - parser combinator
+    some note about type & type class & monad
+  - org-mode parser
+    and better org-mode tangle
+  - delimited continuation
+  - some array processing function as macro
   - better repl
-
   - replace gulp with something else
-
 * note
 
 *** beware of side-effect
@@ -362,16 +367,18 @@
 
 * apply
 
-  #+begin_src js
-  function apply (array) {
-    if (array.length === 0) {
-      // do nothing
+*** apply
+
+    #+begin_src js
+    function apply (array) {
+      if (array.length === 0) {
+        // do nothing
+      }
+      else {
+        retack.push(new RETACK_POINT(array));
+      }
     }
-    else {
-      retack.push(new RETACK_POINT(array));
-    }
-  }
-  #+end_src
+    #+end_src
 
 * eva
 
@@ -833,7 +840,7 @@
     ]);
     #+end_src
 
-* >< array
+* array
 
 *** set & get
 
@@ -975,9 +982,9 @@
     #+begin_src js
     function array_primrec (base_array, after_array) {
       apply ([
-        [ dup, empty ],
+        [dup, empty],
         base_array,
-        [ dup, car, swap, cdr ],
+        [dup, car, swap, cdr],
         after_array,
         linrec,
       ]);
@@ -1032,13 +1039,31 @@
     ]);
     #+end_src
 
-*** >< fold
+*** fold
 
     #+begin_src js
+    function fold (base, binfun) {
+      apply ([
+        [drop, base],
+        [binfun, apply],
+        array_primrec
+      ]);
+    }
+    #+end_src
 
+*** test
+
+    #+begin_src js
+    tes ([
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0, [add], fold
+    ],[
+      55
+    ]);
     #+end_src
 
 * >< object
+
+*** note
 
 *** massage passing
 
@@ -1066,6 +1091,14 @@
 * >< string
 
 *** >< string_append
+
+    #+begin_src js
+
+    #+end_src
+
+* >< parser
+
+*** ><
 
     #+begin_src js
 
@@ -1114,7 +1147,8 @@
 
     #+begin_src js
     repl ([
-      [1, 2, 3, 4, 5, 6, 7, 8], [5, lt], map
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      0, [add], fold,
     ]);
     #+end_src
 
@@ -1123,4 +1157,41 @@
   #+begin_src js
   // module.exports = {
   // };
+  #+end_src
+
+* ><
+
+  #+begin_src js :tangle no
+  data Tree = Empty
+            | Leaf Int
+            | Node Tree Tree
+
+  ["tree", "empty"]
+  ["tree", "leaf", "value"]
+  ["tree", "node", "tree", "tree"]
+
+  depth :: Tree -> Int
+  depth Empty = 0
+  depth (Leaf n) = 1
+  depth (Node l r) = 1 + max (depth l) (depth r)
+
+  ["empty", [0]],
+  ["leaf", [drop, 1]],
+  ["node", [], [max, 1, add]],
+  tree, algrec
+
+  data LispVal = Atom String
+               | List [LispVal]
+               | DottedList [LispVal] LispVal
+               | Number Integer
+               | String String
+               | Bool Bool
+
+  ["atom", []],
+  ["list", [], []],
+  ["dottedlist", [], []],
+  ["number", []],
+  ["string", []],
+  ["bool", []],
+  lispval, recur
   #+end_src
