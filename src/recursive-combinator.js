@@ -272,6 +272,14 @@ HASH_TABLE.prototype = {
 };
 const argack = new STACK();
 const retack = new STACK();
+function apply (array) {
+  if (array.length === 0) {
+    // do nothing
+  }
+  else {
+    retack.push(new RETACK_POINT(array));
+  }
+}
 function RETACK_POINT (array) {
   this.array = array;
   this.cursor = 0;
@@ -294,22 +302,15 @@ RETACK_POINT.prototype = {
 };
 function eva (array, map) {
   let base_cursor = retack.cursor();
-  let first_retack_point = new RETACK_POINT(array);
-  if (array.length === 0) {
-    return first_retack_point;
-  }
-  else {
-    retack.push(first_retack_point);
-    while (retack.cursor() > base_cursor) {
-      let retack_point = retack.pop();
-      let jo = retack_point.get_current_jo();
-      if (!retack_point.at_tail_position()) {
-        retack_point.next();
-        retack.push(retack_point);
-      }
-      eva_dispatch(jo, retack_point);
+  apply (array);
+  while (retack.cursor() > base_cursor) {
+    let retack_point = retack.pop();
+    let jo = retack_point.get_current_jo();
+    if (!retack_point.at_tail_position()) {
+      retack_point.next();
+      retack.push(retack_point);
     }
-    return first_retack_point;
+    eva_dispatch(jo, retack_point);
   }
 }
 function eva_dispatch (jo, retack_point) {
@@ -334,14 +335,6 @@ function eva_primitive_function (jo) {
   let result = jo.apply(this, arg_list);
   if (result !== undefined) {
     argack.push(result);
-  }
-}
-function apply (array) {
-  if (array.length === 0) {
-    // do nothing
-  }
-  else {
-    retack.push(new RETACK_POINT(array));
   }
 }
 function tes (array1, array2) {
@@ -431,91 +424,6 @@ tes ([
 ], [
   2, 1, 2,
 ]);
-function anp (bool1, bool2) {
-  return bool1 && bool2;
-}
-
-function orp (bool1, bool2) {
-  return bool1 || bool2;
-}
-
-function nop (bool) {
-  return !bool;
-}
-function get (array, index) {
-  return array[index];
-}
-
-function set (array, index, value) {
-  // be careful about side-effect
-  array[index] = value;
-}
-tes ([
-  [4, 5, 6],
-  dup, 0, 0, set,
-  dup, 1, 1, set,
-  dup, 2, 2, set,
-],[
-  [0, 1, 2],
-]);
-function length (array) {
-  return array.length;
-}
-tes ([
-  [4, 5, 6], length,
-],[
-  3,
-]);
-function concat (array1, array2) {
-  return array1.concat(array2);
-}
-tes ([
-  [1, 2, 3], dup, concat,
-],[
-  [1, 2, 3, 1, 2, 3],
-]);
-function cons (value, array) {
-  let result = [];
-  result.push(value);
-  return result.concat(array);
-}
-
-function car (array) {
-  return array[0];
-}
-
-function cdr (array) {
-  let result = [];
-  let index = 1;
-  while (index < array.length) {
-    result.push(array[index]);
-    index = 1 + index;
-  }
-  return result;
-}
-function unit (value) {
-  let result = [];
-  result.push(value);
-  return result;
-}
-function empty (array) {
-  return array.length === 0;
-}
-function reverse (array) {
-  let result = [];
-  for (let element of array) {
-    result.push(element);
-  }
-  return result.reverse();
-}
-tes ([
-  [1, 2, 3],
-  dup, reverse, concat,
-  dup, length,
-],[
-  [1, 2, 3, 3, 2, 1],
-  6,
-]);
 function add (a, b) { return a + b; }
 function sub (a, b) { return a - b; }
 
@@ -531,6 +439,10 @@ function neg (a) { return -a; }
 
 function max (a, b) { return Math.max(a, b); }
 function min (a, b) { return Math.min(a, b); }
+function and (bool1, bool2) { return bool1 && bool2; }
+function or (bool1, bool2) { return bool1 || bool2; }
+function not (bool) { return !bool; }
+
 function eq   (value1, value2) { return value1 === value2; }
 function lt   (value1, value2) { return value1 <  value2 ; }
 function gt   (value1, value2) { return value1 >  value2 ; }
@@ -658,9 +570,19 @@ function tailrec (predicate_array, base_array, before_array) {
   }
   else {
     eva (before_array);
-    retack.push (new RETACK_POINT(rec_array));
+    apply (rec_array);
   }
 }
+// last
+tes ([
+  [1, 2, 3, 4, 5, 6],
+  [dup, length, 1, eq],
+  [car],
+  [cdr],
+  tailrec
+],[
+  6
+]);
 function number_primrec (base_array, after_array) {
   apply ([
     [ dup, 0, eq ],
@@ -679,6 +601,80 @@ tes ([
 ],[
   720,
 ]);
+function get (array, index) {
+  return array[index];
+}
+
+function set (array, index, value) {
+  // be careful about side-effect
+  array[index] = value;
+}
+tes ([
+  [4, 5, 6],
+  dup, 0, 0, set,
+  dup, 1, 1, set,
+  dup, 2, 2, set,
+],[
+  [0, 1, 2],
+]);
+function length (array) {
+  return array.length;
+}
+tes ([
+  [4, 5, 6], length,
+],[
+  3,
+]);
+function concat (array1, array2) {
+  return array1.concat(array2);
+}
+tes ([
+  [1, 2, 3], dup, concat,
+],[
+  [1, 2, 3, 1, 2, 3],
+]);
+function cons (value, array) {
+  let result = [];
+  result.push(value);
+  return result.concat(array);
+}
+
+function car (array) {
+  return array[0];
+}
+
+function cdr (array) {
+  let result = [];
+  let index = 1;
+  while (index < array.length) {
+    result.push(array[index]);
+    index = 1 + index;
+  }
+  return result;
+}
+function unit (value) {
+  let result = [];
+  result.push(value);
+  return result;
+}
+function empty (array) {
+  return array.length === 0;
+}
+function reverse (array) {
+  let result = [];
+  for (let element of array) {
+    result.push(element);
+  }
+  return result.reverse();
+}
+tes ([
+  [1, 2, 3],
+  dup, reverse, concat,
+  dup, length,
+],[
+  [1, 2, 3, 3, 2, 1],
+  6,
+]);
 function array_primrec (base_array, after_array) {
   apply ([
     [ dup, empty ],
@@ -688,10 +684,34 @@ function array_primrec (base_array, after_array) {
     linrec,
   ]);
 }
-
-function filter () {
-
+function filter (predicate_array) {
+  apply ([
+    [],
+    [[over, predicate_array, apply],
+     [cons],
+     [swap, drop],
+     ifte],
+    array_primrec,
+  ]);
 }
+tes ([
+  [1, 2, 3, 4, 5, 6, 7, 8], [5, lt], filter
+],[
+  [1, 2, 3, 4]
+]);
+function map (fun) {
+  apply ([
+    [],
+    [swap, fun, apply,
+     swap, cons],
+    array_primrec,
+  ]);
+}
+tes ([
+  [1, 2, 3, 4, 5, 6, 7, 8], [5, lt], map
+],[
+  [true, true, true, true, false, false, false, false]
+]);
 
 function ya (object, message) {
   if (function_p (object[message])) {
@@ -727,36 +747,20 @@ argack.print = function () {
 };
 function repl (array, map) {
   let base_cursor = retack.cursor();
-  let first_retack_point = new RETACK_POINT(array);
-  if (array.length === 0) {
-    return first_retack_point;
-  }
-  else {
-    retack.push (first_retack_point);
-    while (retack.cursor() > base_cursor) {
-      let retack_point = retack.pop();
-      let jo = retack_point.get_current_jo();
-      if (!retack_point.at_tail_position()) {
-        retack_point.next();
-        retack.push (retack_point);
-      }
-      eva_dispatch (jo, retack_point);
-      argack.print();
+  apply (array);
+  while (retack.cursor() > base_cursor) {
+    let retack_point = retack.pop();
+    let jo = retack_point.get_current_jo();
+    if (!retack_point.at_tail_position()) {
+      retack_point.next();
+      retack.push(retack_point);
     }
-    return first_retack_point;
+    eva_dispatch(jo, retack_point);
+    argack.print();
   }
 }
-function last () {
-  apply ([
-    [dup, length, 1, eq],
-    [car],
-    [cdr],
-    tailrec,
-  ]);
-}
-
 repl ([
-  [1, 2, 3], last,
+  [1, 2, 3, 4, 5, 6, 7, 8], [5, lt], map
 ]);
 // module.exports = {
 // };
