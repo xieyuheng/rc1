@@ -275,7 +275,6 @@ const retack = new STACK();
 function RETACK_POINT (array) {
   this.array = array;
   this.cursor = 0;
-  this.local_variable_map = new Map();
 }
 
 RETACK_POINT.prototype = {
@@ -293,10 +292,9 @@ RETACK_POINT.prototype = {
   },
 
 };
-function eva_with_map (array, map) {
+function eva (array, map) {
   let base_cursor = retack.cursor();
   let first_retack_point = new RETACK_POINT(array);
-  first_retack_point.local_variable_map = map;
   if (array.length === 0) {
     return first_retack_point;
   }
@@ -314,31 +312,12 @@ function eva_with_map (array, map) {
     return first_retack_point;
   }
 }
-function eva (array) {
-  return eva_with_map(array, new Map());
-}
 function eva_dispatch (jo, retack_point) {
   if (function_p(jo)) {
     eva_primitive_function(jo);
   }
   else if (jo === undefined) {
     // do nothing
-  }
-  else if (!object_p(jo)) {
-    argack.push(jo);
-  }
-  else if (array_p (jo._fun)) {
-    retack.push(new RETACK_POINT(jo._fun));
-  }
-  else if (array_p(jo._into)) {
-    eva_into(
-      jo._into,
-      retack_point.local_variable_map);
-  }
-  else if (array_p(jo._out)) {
-    eva_out(
-      jo._out,
-      retack_point.local_variable_map);
   }
   else {
     argack.push(jo);
@@ -357,71 +336,13 @@ function eva_primitive_function (jo) {
     argack.push(result);
   }
 }
-function into () {
-  let array = [];
-  for (let element of arguments) {
-    array.push(element);
+function apply (array) {
+  if (array.length === 0) {
+    // do nothing
   }
-  return { _into: array };
-}
-function eva_into (array, local_variable_map) {
-  let i = 0;
-  while (i < array.length) {
-    local_variable_map.set(
-      array[(array.length - i) - 1],
-      argack.pop());
-    i = 1 + i;
+  else {
+    retack.push(new RETACK_POINT(array));
   }
-}
-function out () {
-  let array = [];
-  for (let element of arguments) {
-    array.push(element);
-  }
-  return { _out: array };
-}
-function eva_out (array, local_variable_map) {
-  for (let name_string of array) {
-    let result = local_variable_map.get(name_string);
-    if (result === undefined) {
-      // ><><><
-      // better error handling
-      orz("- in eva_out\n",
-          "  meet undefined name : ", name_string);
-    }
-    else {
-      argack.push(result);
-    }
-  }
-}
-function recur () {
-  orz("- recur\n",
-      "  recur is a function used as an unique id\n",
-      "  it should never be called\n");
-}
-function fun (array) {
-  let result = { _fun: null };
-  result._fun = _fun_rec(array, result);
-  return result;
-}
-
-function _fun_rec (array, _fun) {
-  let result = [];
-  let index = 0;
-  while (index < array.length) {
-    if (array_p(array[index])) {
-      result.push(
-        _fun_rec(array[index], _fun));
-    }
-    else if (array[index] === recur) {
-      result.push(_fun);
-    }
-    else {
-      result.push(array[index]);
-    }
-    index = 1 + index;
-  }
-  return result;
 }
 function tes (array1, array2) {
   let cursor = argack.cursor();
@@ -465,29 +386,34 @@ tes ([
   [4, 5, 6],
   tes,
 ]);
-const drop = fun ([
-  into("1"),
-]);
+function drop (a1) {
+  apply ([
+  ]);
+}
 
-const dup = fun ([
-  into("1"),
-  out("1", "1"),
-]);
+function dup (a1) {
+  apply ([
+    a1, a1
+  ]);
+}
 
-const over = fun ([
-  into("1", "2"),
-  out("1", "2", "1"),
-]);
+function over (a1, a2) {
+  apply ([
+    a1, a2, a1
+  ]);
+}
 
-const tuck = fun ([
-  into("1", "2"),
-  out("2", "1", "2"),
-]);
+function tuck (a1, a2) {
+  apply ([
+    a2, a1, a2
+  ]);
+}
 
-const swap = fun ([
-  into("1", "2"),
-  out("2", "1"),
-]);
+function swap(a1, a2) {
+  apply([
+    a2, a1
+  ]);
+}
 tes ([
   1, 2, swap,
 ], [
@@ -623,33 +549,6 @@ tes ([
 ], [
   true,
 ]);
-function apply (array) {
-  if (array.length === 0) {
-    // do nothing
-  }
-  else {
-    retack.push(new RETACK_POINT(array));
-  }
-}
-tes ([
-  [], apply,
-],[
-
-]);
-
-tes ([
-  [1], apply,
-  [dup, dup], apply,
-],[
-  1, 1, 1,
-]);
-
-tes ([
-  [1], eva, drop,
-  [dup, dup], eva, drop,
-],[
-  1, 1, 1,
-]);
 function ifte (predicate_array, true_array, false_array) {
   eva (predicate_array);
   if (argack.pop()) {
@@ -683,196 +582,6 @@ tes ([
 ],[
   123,
 ]);
-function va (string) {
-  return { _va: string };
-}
-function guard (array) {
-  return { _guard: array };
-}
-function antecedent_actual_length (antecedent) {
-  let index = 0;
-  let counter = 0;
-  while (index < antecedent.length) {
-    if ((object_p (antecedent[counter])) &&
-        (array_p (antecedent[counter]._guard))) {
-      // do nothing
-    }
-    else {
-      counter = 1 + counter;
-    }
-    index = 1 + index;
-  }
-  return counter;
-}
-function unify_array (source, pattern, map) {
-  let index = 0;
-  while (index < pattern.length) {
-    let success =
-        unify_dispatch (
-          source[index],
-          pattern[index],
-          map);
-    if (success) {
-      // do nothing
-    }
-    else {
-      return false;
-    }
-    index = 1 + index;
-  }
-  return map;
-}
-function unify_dispatch (source, pattern, map) {
-
-  if (array_p (pattern)) {
-    return unify_array(source, pattern, map);
-  }
-
-  else if (string_p (pattern._va)) {
-    if (map.has (pattern._va)) {
-      if (source === map.get (pattern._va)) {
-        return map;
-      }
-      else {
-        return false;
-      }
-    }
-    else {
-      map.set (pattern._va, source);
-      return map;
-    }
-  }
-
-  else if (array_p (pattern._guard)) {
-    eva_with_map (pattern._guard, map);
-    let result = argack.pop();
-    if (result) {
-      return map;
-    }
-    else {
-      return false;
-    }
-  }
-
-  else {
-    if (equal (source, pattern)) {
-      return map;
-    }
-    else {
-      return false;
-    }
-  }
-
-}
-function unify (source, pattern) {
-  let result_map = new Map();
-  let success =
-      unify_dispatch (
-        source,
-        pattern,
-        result_map);
-  if (success) {
-    return result_map;
-  }
-  else {
-    return false;
-  }
-}
-function match (sequent_array) {
-  let index = 0;
-  while (index + 1 < sequent_array.length) {
-    let antecedent = sequent_array[index];
-    let succedent = sequent_array[index + 1];
-    let length = antecedent_actual_length (antecedent);
-    let argument_array = argack.n_tos (length);
-    let result_map =
-        unify (argument_array, antecedent);
-    if (result_map) {
-      argack.n_pop (length);
-      let new_retack_point = new RETACK_POINT(succedent);
-      new_retack_point.local_variable_map = result_map;
-      retack.push (new_retack_point);
-      return;
-    }
-    index = 2 + index;
-  }
-  orz("match fail\n",
-      "sequent_array:", sequent_array);
-}
-tes ([
-  666,
-  666, 1,
-
-  [[2],
-   [1, 2, 3],
-
-   [666, 1],
-   [4, 5, 6],
-  ],match,
-
-],[
-  666,
-  [4, 5, 6],
-  apply,
-]);
-
-tes ([
-  1, 2, 3,
-  [[1, va ("2"), 4],
-   [null],
-
-   [1, va ("2"), 3],
-   [out ("2"), out ("2")],
-  ],match,
-], [
-  2, dup,
-]);
-
-tes ([
-  1, 2, 3,
-  [[1, va ("2"), 4],
-   [null],
-
-   [1, va ("2"), 3],
-   [out ("2")],
-  ],match,
-], [
-  2,
-]);
-
-tes ([
-  1, 2, 3,
-  [[1, va ("2"), 4],
-   [null],
-
-   [1, va ("2"), 3,
-    guard ([false])],
-   [false, out ("2")],
-
-   [1, va ("2"), 3,
-    guard ([true])],
-   [true, out ("2")],
-  ],match,
-], [
-  true, 2,
-]);
-
-tes ([
-  1, 2, 3,
-  [[1, va ("2"), 4],
-   [null],
-
-   [1, va ("2"), 3,
-    guard ([1, out ("2"), gt])],
-   [false, out ("2")],
-
-   [1, va ("2"), 3,
-    guard ([1, out ("2"), lt])],
-   [true, out ("2")],
-  ],match,
-], [
-  true, 2,
-]);
 function linrec (predicate_array, base_array, before_array, after_array) {
   let rec_array = [];
   rec_array.push (predicate_array);
@@ -897,18 +606,6 @@ tes ([
   [],
   [dup, 1, sub], [mul],
   linrec,
-],[
-  720,
-]);
-
-tes ([
-  6,
-  fun ([
-    [dup, 1, eq],
-    [],
-    [dup, 1, sub, recur, mul],
-    ifte,
-  ])
 ],[
   720,
 ]);
@@ -945,24 +642,56 @@ function genrec (predicate_array, base_array, before_array, after_array) {
   }
   else {
     eva (before_array);
-    argack.pop (rec_array);
+    argack.push (rec_array);
     eva (after_array);
   }
 }
-const tailrec = fun ([
-  into ("predicate_array", "base_array", "before_array"),
-
-  out ("predicate_array", "base_array", "before_array"),
-  concat, concat, into ("rec_array"),
-
-  out ("predicate_array", "base_array", "before_array"),
-  ifte,
-
-  out ("rec_array"), apply,
+function tailrec (predicate_array, base_array, before_array) {
+  let rec_array = [];
+  rec_array.push (predicate_array);
+  rec_array.push (base_array);
+  rec_array.push (before_array);
+  rec_array.push (tailrec);
+  eva (predicate_array);
+  if (argack.pop()) {
+    eva (base_array);
+  }
+  else {
+    eva (before_array);
+    retack.push (new RETACK_POINT(rec_array));
+  }
+}
+function number_primrec (base_array, after_array) {
+  apply ([
+    [ dup, 0, eq ],
+    base_array,
+    [ dup, 1, sub ],
+    after_array,
+    linrec,
+  ]);
+}
+// factorial
+tes ([
+  6,
+  [drop, 1],
+  [mul],
+  number_primrec,
+],[
+  720,
 ]);
+function array_primrec (base_array, after_array) {
+  apply ([
+    [ dup, empty ],
+    base_array,
+    [ dup, car, swap, cdr ],
+    after_array,
+    linrec,
+  ]);
+}
 
+function filter () {
 
-
+}
 
 function ya (object, message) {
   if (function_p (object[message])) {
@@ -990,14 +719,15 @@ argack.print = function () {
     arg_list.push (argack.array[index]);
     index = 1 + index;
   }
-  arg_list.unshift("  *", argack.cursor(), "*  --");
-  arg_list.push("--");
-  console.log.apply (console, arg_list);
+  cat("------", argack.cursor(), "------");
+  for (let arg of arg_list) {
+    cat (arg);
+  }
+  cat("---------------\n");
 };
-function repl_with_map (array, map) {
+function repl (array, map) {
   let base_cursor = retack.cursor();
   let first_retack_point = new RETACK_POINT(array);
-  first_retack_point.local_variable_map = map;
   if (array.length === 0) {
     return first_retack_point;
   }
@@ -1016,30 +746,17 @@ function repl_with_map (array, map) {
     return first_retack_point;
   }
 }
-function repl (array) {
-  return repl_with_map (array, new Map());
+function last () {
+  apply ([
+    [dup, length, 1, eq],
+    [car],
+    [cdr],
+    tailrec,
+  ]);
 }
-let last = fun ([
-  [dup, length, 1, eq],
-  [car],
-  [cdr],
-  [],
-  linrec,
-]);
 
 repl ([
-  [
-    [1, 2, 3],
-    dup, reverse, concat,
-    dup, length,
-  ], apply,
-  [1, 2, 3], last
+  [1, 2, 3], last,
 ]);
 // module.exports = {
-//   in_node, in_browser,
-//   function_p, array_p, object_p, atom_p, string_p
-//   cat, orz, asr
-//   STACK, HASH_TABLE
-//   argack, retack
-//   fun, into, out, ya, eva
-// }
+// };
