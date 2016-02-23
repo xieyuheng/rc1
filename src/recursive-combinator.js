@@ -724,6 +724,106 @@ tes ([
 ],[
   55
 ]);
+function self () {
+  orz("this function is used as unique id");
+}
+
+function DATA () {
+  let constructor_array = [];
+  for (let argument of arguments) {
+    constructor_array.push(argument);
+  }
+  this.constructor_array = constructor_array;
+  for (let constructor of constructor_array) {
+    if (constructor.length === 1) {
+      this[constructor[0]] = () => {
+        return [this, constructor[0]];
+      };
+    }
+    else if (constructor.length === 2) {
+      this[constructor[0]] = (a1) => {
+        return [this, constructor[0], a1];
+      };
+    }
+    else if (constructor.length === 3) {
+      this[constructor[0]] = (a1, a2) => {
+        return [this, constructor[0], a1, a2];
+      };
+    }
+    else if (constructor.length === 4) {
+      this[constructor[0]] = (a1, a2, a3) => {
+        return [this, constructor[0], a1, a2, a3];
+      };
+    }
+    else if (constructor.length === 5) {
+      this[constructor[0]] = (a1, a2, a3, a4) => {
+        return [this, constructor[0], a1, a2, a3, a4];
+      };
+    }
+    else {
+      orz("DATA fail on constructor:", constructor);
+    }
+  }
+}
+function match (value, pattern) {
+  let type = car(pattern);
+  let pattern_array = cdr(pattern);
+  if (!array_p(value)) {
+    orz("match fail\n",
+        "value is not array:", value);
+  }
+  if (value.length < 1) {
+    orz("match fail\n",
+        "value is not a taged data:", value);
+  }
+  if (value[0] === type) {
+    for (let clause of pattern_array) {
+      if (value[1] === clause[0]) {
+        argack.push_array(cdr(cdr(value)));
+        apply(clause[1]);
+        return;
+      }
+    }
+    orz("match fail\n",
+        "can not match value:", value, "\n",
+        "with pattern:", pattern);
+  }
+  else {
+    orz("match fail\n",
+        "value:", value, "\n",
+        "is not of type:", type);
+  }
+}
+{
+  let tree = new DATA (
+    ["empty"],
+    ["leaf", "value"],
+    ["node", self, self]
+  );
+
+  function depth () {
+    apply ([
+      [tree,
+       ["empty", [0]],
+       ["leaf", [drop, 1]],
+       ["node", [depth, swap, depth,
+                 max, 1, add]],
+      ],match
+    ]);
+  }
+
+  tes ([
+    1, tree.leaf,
+    1, tree.leaf, tree.node,
+    1, tree.leaf, tree.node,
+    depth
+  ],[
+    3
+  ]);
+}
+function matchgenrec () {
+
+}
 function ya (object, message) {
   if (function_p (object[message])) {
     let arg_length = object[message].length;
@@ -774,7 +874,6 @@ function repl (array, map) {
 repl ([
   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   0, [add], fold,
-  1, [2], cons
 ]);
 // module.exports = {
 // };

@@ -4,9 +4,6 @@
 
 * todo
   - better imperative programming support
-  - note about what is type
-  - algebraic data type in javascript
-    pattern match without named variables
   - parser combinator
     some note about type & type class & monad
   - org-mode parser
@@ -1061,6 +1058,156 @@
     ]);
     #+end_src
 
+* data
+
+*** note
+
+    - poor kid's poor algebraic data type in dynamic language
+      without type checker
+      with faked poor pattern match without named variables
+
+    - use new DATA (...)
+      to define new algebraic data
+
+    - each argument is an array
+      for example
+      #+begin_src js :tangle no
+      let tree = new DATA (
+        ["empty"],
+        ["leaf", "value"],
+        ["node", self, self]
+      );
+      #+end_src
+
+    - data-constructor do not check argument type at runtime
+
+    - only the length in the declaration is used by data-constructor
+
+    - use 'self' to declare recursive data
+      for I may add runtime check support in the future
+
+*** DATA
+
+    #+begin_src js
+    function self () {
+      orz("this function is used as unique id");
+    }
+
+    function DATA () {
+      let constructor_array = [];
+      for (let argument of arguments) {
+        constructor_array.push(argument);
+      }
+      this.constructor_array = constructor_array;
+      for (let constructor of constructor_array) {
+        if (constructor.length === 1) {
+          this[constructor[0]] = () => {
+            return [this, constructor[0]];
+          };
+        }
+        else if (constructor.length === 2) {
+          this[constructor[0]] = (a1) => {
+            return [this, constructor[0], a1];
+          };
+        }
+        else if (constructor.length === 3) {
+          this[constructor[0]] = (a1, a2) => {
+            return [this, constructor[0], a1, a2];
+          };
+        }
+        else if (constructor.length === 4) {
+          this[constructor[0]] = (a1, a2, a3) => {
+            return [this, constructor[0], a1, a2, a3];
+          };
+        }
+        else if (constructor.length === 5) {
+          this[constructor[0]] = (a1, a2, a3, a4) => {
+            return [this, constructor[0], a1, a2, a3, a4];
+          };
+        }
+        else {
+          orz("DATA fail on constructor:", constructor);
+        }
+      }
+    }
+    #+end_src
+
+*** match
+
+    - no chech on length of input array
+
+    #+begin_src js
+    function match (value, pattern) {
+      let type = car(pattern);
+      let pattern_array = cdr(pattern);
+      if (!array_p(value)) {
+        orz("match fail\n",
+            "value is not array:", value);
+      }
+      if (value.length < 1) {
+        orz("match fail\n",
+            "value is not a taged data:", value);
+      }
+      if (value[0] === type) {
+        for (let clause of pattern_array) {
+          if (value[1] === clause[0]) {
+            argack.push_array(cdr(cdr(value)));
+            apply(clause[1]);
+            return;
+          }
+        }
+        orz("match fail\n",
+            "can not match value:", value, "\n",
+            "with pattern:", pattern);
+      }
+      else {
+        orz("match fail\n",
+            "value:", value, "\n",
+            "is not of type:", type);
+      }
+    }
+    #+end_src
+
+*** test
+
+    #+begin_src js
+    {
+      let tree = new DATA (
+        ["empty"],
+        ["leaf", "value"],
+        ["node", self, self]
+      );
+
+      function depth () {
+        apply ([
+          [tree,
+           ["empty", [0]],
+           ["leaf", [drop, 1]],
+           ["node", [depth, swap, depth,
+                     max, 1, add]],
+          ],match
+        ]);
+      }
+
+      tes ([
+        1, tree.leaf,
+        1, tree.leaf, tree.node,
+        1, tree.leaf, tree.node,
+        depth
+      ],[
+        3
+      ]);
+    }
+    #+end_src
+
+*** >< matchgenrec
+
+    #+begin_src js
+    function matchgenrec () {
+
+    }
+    #+end_src
+
 * >< object
 
 *** note
@@ -1157,41 +1304,4 @@
   #+begin_src js
   // module.exports = {
   // };
-  #+end_src
-
-* ><
-
-  #+begin_src js :tangle no
-  data Tree = Empty
-            | Leaf Int
-            | Node Tree Tree
-
-  ["tree", "empty"]
-  ["tree", "leaf", "value"]
-  ["tree", "node", "tree", "tree"]
-
-  depth :: Tree -> Int
-  depth Empty = 0
-  depth (Leaf n) = 1
-  depth (Node l r) = 1 + max (depth l) (depth r)
-
-  ["empty", [0]],
-  ["leaf", [drop, 1]],
-  ["node", [], [max, 1, add]],
-  tree, algrec
-
-  data LispVal = Atom String
-               | List [LispVal]
-               | DottedList [LispVal] LispVal
-               | Number Integer
-               | String String
-               | Bool Bool
-
-  ["atom", []],
-  ["list", [], []],
-  ["dottedlist", [], []],
-  ["number", []],
-  ["string", []],
-  ["bool", []],
-  lispval, recur
   #+end_src
