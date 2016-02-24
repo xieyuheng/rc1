@@ -850,6 +850,10 @@ function ya (object, message) {
   }
 }
 
+function TEXT () {
+  this.string
+
+}
 function fail () {
   return fail;
 };
@@ -883,7 +887,6 @@ function repl (array, map) {
 repl ([
   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   0, [add], fold,
-  fail
 ]);
 // module.exports = {
 // };
