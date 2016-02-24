@@ -1,8 +1,4 @@
-#+TITLE:  recursive combinator
-#+AUTHOR: 謝宇恆 / XIE Yuheng
-#+PROPERTY: tangle recursive-combinator.js
-
-* todo
+# todo
   - better imperative programming support
   - parser combinator
     some note about type & type class & monad
@@ -12,9 +8,9 @@
   - some array processing function as macro
   - better repl
   - replace gulp with something else
-* note
+# note
 
-*** beware of side-effect
+### beware of side-effect
 
     - beware of side-effect such as
       pop push shift unshift
@@ -22,21 +18,21 @@
       if you pass array to sub-function
       such side-effect will destroy the array
 
-*** beware of function interface
+### beware of function interface
 
     - the function interface must be strict
 
-*** asynchronous
+### asynchronous
 
     - asynchronous code should only be used for IO
       to express that
       the callback depends on the finishing of asynchronous IO
 
-* helper
+# helper
 
-*** header
+### header
 
-    #+begin_src js
+    ``` js
     "use strict";
 
     const _equal = require("deep-equal");
@@ -44,11 +40,11 @@
     function equal (value1, value2) {
       return _equal(value1, value2);
     }
-    #+end_src
+    ```
 
-*** basic predicate
+### basic predicate
 
-    #+begin_src js
+    ``` js
     function in_node () {
       return (typeof module) !== "undefined";
     }
@@ -78,11 +74,11 @@
     function string_p (value) {
       return (typeof value) === "string";
     }
-    #+end_src
+    ```
 
-*** cat
+### cat
 
-    #+begin_src js
+    ``` js
     function cat () {
       let argument_array = [];
       for (let argument of arguments) {
@@ -92,11 +88,11 @@
         console,
         argument_array);
     }
-    #+end_src
+    ```
 
-*** orz
+### orz
 
-    #+begin_src js
+    ``` js
     function orz () {
       cat.apply(this, arguments);
       console.assert(false, "arguments");
@@ -105,19 +101,19 @@
     // {
     //   orz("k1", "k2", "k3");
     // }
-    #+end_src
+    ```
 
-*** asr
+### asr
 
-    #+begin_src js
+    ``` js
     function asr () {
       console.assert.apply(console, arguments);
     }
-    #+end_src
+    ```
 
-*** STACK
+### STACK
 
-    #+begin_src js
+    ``` js
     function STACK () {
       this.array = [];
     }
@@ -189,9 +185,9 @@
       asr(array[1] === 1);
       asr(array[2] === 2);
     }
-    #+end_src
+    ```
 
-*** HASH_TABLE
+### HASH_TABLE
 
     - index of hash-table is used as interned string
 
@@ -202,7 +198,7 @@
     - open addressing
       for we do not need to delete
 
-    #+begin_src js
+    ``` js
     function HASH_TABLE_ENTRY (index) {
       this.index = index;
       this.key = null;
@@ -348,25 +344,25 @@
       },
 
     };
-    #+end_src
+    ```
 
-* argack
+# argack
 
-  #+begin_src js
+  ``` js
   const argack = new STACK();
-  #+end_src
+  ```
 
-* retack
+# retack
 
-  #+begin_src js
+  ``` js
   const retack = new STACK();
-  #+end_src
+  ```
 
-* apply
+# apply
 
-*** apply
+### apply
 
-    #+begin_src js
+    ``` js
     function apply (array) {
       if (array.length === 0) {
         // do nothing
@@ -375,13 +371,13 @@
         retack.push(new RETACK_POINT(array));
       }
     }
-    #+end_src
+    ```
 
-* eva
+# eva
 
-*** RETACK_POINT
+### RETACK_POINT
 
-    #+begin_src js
+    ``` js
     function RETACK_POINT (array) {
       this.array = array;
       this.cursor = 0;
@@ -402,9 +398,9 @@
       },
 
     };
-    #+end_src
+    ```
 
-*** eva
+### eva
 
     - main loop of the retack interpreter
 
@@ -414,7 +410,7 @@
     - retack_point passing
       thus eva_dispatch have the current retack_point
 
-    #+begin_src js
+    ``` js
     function eva (array, map) {
       let base_cursor = retack.cursor();
       apply (array);
@@ -428,11 +424,11 @@
         eva_dispatch(jo, retack_point);
       }
     }
-    #+end_src
+    ```
 
-*** eva_dispatch
+### eva_dispatch
 
-    #+begin_src js
+    ``` js
     function eva_dispatch (jo, retack_point) {
       if (function_p(jo)) {
         eva_primitive_function(jo);
@@ -444,11 +440,11 @@
         argack.push(jo);
       }
     }
-    #+end_src
+    ```
 
-*** eva_primitive_function
+### eva_primitive_function
 
-    #+begin_src js
+    ``` js
     function eva_primitive_function (jo) {
       let count_down = jo.length;
       let arg_list = [];
@@ -462,15 +458,15 @@
         argack.push(result);
       }
     }
-    #+end_src
+    ```
 
-* tes
+# tes
 
-*** note
+### note
 
-*** tes
+### tes
 
-    #+begin_src js
+    ``` js
     function tes (array1, array2) {
       let cursor = argack.cursor();
       eva(array1);
@@ -488,11 +484,11 @@
             "program2:", array2, "\n");
       }
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
     ], [
     ]);
@@ -518,13 +514,13 @@
       [4, 5, 6],
       tes,
     ]);
-    #+end_src
+    ```
 
-* stack
+# stack
 
-*** basic
+### basic
 
-    #+begin_src js
+    ``` js
     function drop (a1) {
       apply ([
       ]);
@@ -553,11 +549,11 @@
         a2, a1
       ]);
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       1, 2, swap,
     ], [
@@ -575,19 +571,19 @@
     ], [
       2, 1, 2,
     ]);
-    #+end_src
+    ```
 
-* basic
+# basic
 
-*** number
+### number
 
     - note that number === all limited float number
 
-    #+begin_src js
+    ``` js
     function add (a, b) { return a + b; }
     function sub (a, b) { return a - b; }
 
-    function mul (a, b) { return a * b; }
+    function mul (a, b) { return a # b; }
     function div (a, b) { return a / b; }
     function mod (a, b) { return a % b; }
 
@@ -599,29 +595,29 @@
 
     function max (a, b) { return Math.max(a, b); }
     function min (a, b) { return Math.min(a, b); }
-    #+end_src
+    ```
 
-*** bool
+### bool
 
-    #+begin_src js
+    ``` js
     function and (bool1, bool2) { return bool1 && bool2; }
     function or  (bool1, bool2) { return bool1 || bool2; }
     function not (bool) { return !bool; }
-    #+end_src
+    ```
 
-*** predicate
+### predicate
 
-    #+begin_src js
+    ``` js
     function eq   (value1, value2) { return value1 === value2; }
     function lt   (value1, value2) { return value1 <  value2 ; }
     function gt   (value1, value2) { return value1 >  value2 ; }
     function lteq (value1, value2) { return value1 <= value2 ; }
     function gteq (value1, value2) { return value1 >= value2 ; }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       2, 3, pow,
       8, eq,
@@ -636,13 +632,13 @@
     ], [
       true,
     ]);
-    #+end_src
+    ```
 
-* combinator
+# combinator
 
-*** ifte
+### ifte
 
-    #+begin_src js
+    ``` js
     function ifte (predicate_array, true_array, false_array) {
       eva (predicate_array);
       if (argack.pop()) {
@@ -652,11 +648,11 @@
         eva(false_array);
       }
     }
-    #+end_src
+    ```
 
-*** cond
+### cond
 
-    #+begin_src js
+    ``` js
     function cond (sequent_array) {
       let index = 0;
       while (index + 1 < sequent_array.length) {
@@ -674,11 +670,11 @@
       orz("cond fail\n",
           "sequent_array:", sequent_array);
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [[false], [321],
        [true], [123],
@@ -686,11 +682,11 @@
     ],[
       123,
     ]);
-    #+end_src
+    ```
 
-*** linrec
+### linrec
 
-    #+begin_src js
+    ``` js
     function linrec (predicate_array, base_array, before_array, after_array) {
       let rec_array = [];
       rec_array.push (predicate_array);
@@ -708,11 +704,11 @@
         eva (after_array);
       }
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     // factorial
     tes ([
       6,
@@ -723,11 +719,11 @@
     ],[
       720,
     ]);
-    #+end_src
+    ```
 
-*** binrec
+### binrec
 
-    #+begin_src js
+    ``` js
     function binrec (predicate_array, base_array, before_array, after_array) {
       let rec_array = [];
       rec_array.push (predicate_array);
@@ -748,11 +744,11 @@
         eva (after_array);
       }
     }
-    #+end_src
+    ```
 
-*** genrec
+### genrec
 
-    #+begin_src js
+    ``` js
     function genrec (predicate_array, base_array, before_array, after_array) {
       let rec_array = [];
       rec_array.push (predicate_array);
@@ -770,11 +766,11 @@
         eva (after_array);
       }
     }
-    #+end_src
+    ```
 
-*** tailrec
+### tailrec
 
-    #+begin_src js
+    ``` js
     function tailrec (predicate_array, base_array, before_array) {
       let rec_array = [];
       rec_array.push (predicate_array);
@@ -790,11 +786,11 @@
         apply (rec_array);
       }
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     // last
     tes ([
       [1, 2, 3, 4, 5, 6],
@@ -805,13 +801,13 @@
     ],[
       6
     ]);
-    #+end_src
+    ```
 
-* number
+# number
 
-*** number_primrec
+### number_primrec
 
-    #+begin_src js
+    ``` js
     function number_primrec (base_array, after_array) {
       apply ([
         [ dup, 0, eq ],
@@ -821,11 +817,11 @@
         linrec,
       ]);
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     // factorial
     tes ([
       6,
@@ -835,13 +831,13 @@
     ],[
       720,
     ]);
-    #+end_src
+    ```
 
-* array
+# array
 
-*** set & get
+### set & get
 
-    #+begin_src js
+    ``` js
     function get (array, index) {
       return array[index];
     }
@@ -850,11 +846,11 @@
       // be careful about side-effect
       array[index] = value;
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [4, 5, 6],
       dup, 0, 0, set,
@@ -863,45 +859,45 @@
     ],[
       [0, 1, 2],
     ]);
-    #+end_src
+    ```
 
-*** length
+### length
 
-    #+begin_src js
+    ``` js
     function length (array) {
       return array.length;
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [4, 5, 6], length,
     ],[
       3,
     ]);
-    #+end_src
+    ```
 
-*** concat
+### concat
 
-    #+begin_src js
+    ``` js
     function concat (array1, array2) {
       return array1.concat(array2);
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [1, 2, 3], dup, concat,
     ],[
       [1, 2, 3, 1, 2, 3],
     ]);
-    #+end_src
+    ```
 
-*** cons & car & cdr
+### cons & car & cdr
 
     - for I am embeding the syntax in js
       I use js array as list
@@ -909,7 +905,7 @@
       if needed
       a compiled version can use true list
 
-    #+begin_src js
+    ``` js
     function cons (value, array) {
       let result = [];
       result.push(value);
@@ -929,29 +925,29 @@
       }
       return result;
     }
-    #+end_src
+    ```
 
-*** unit
+### unit
 
-    #+begin_src js
+    ``` js
     function unit (value) {
       let result = [];
       result.push(value);
       return result;
     }
-    #+end_src
+    ```
 
-*** empty
+### empty
 
-    #+begin_src js
+    ``` js
     function empty (array) {
       return array.length === 0;
     }
-    #+end_src
+    ```
 
-*** reverse
+### reverse
 
-    #+begin_src js
+    ``` js
     function reverse (array) {
       let result = [];
       for (let element of array) {
@@ -959,11 +955,11 @@
       }
       return result.reverse();
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [1, 2, 3],
       dup, reverse, concat,
@@ -972,11 +968,11 @@
       [1, 2, 3, 3, 2, 1],
       6,
     ]);
-    #+end_src
+    ```
 
-*** array_primrec
+### array_primrec
 
-    #+begin_src js
+    ``` js
     function array_primrec (base_array, after_array) {
       apply ([
         [dup, empty],
@@ -986,11 +982,11 @@
         linrec,
       ]);
     }
-    #+end_src
+    ```
 
-*** filter
+### filter
 
-    #+begin_src js
+    ``` js
     function filter (predicate_array) {
       apply ([
         [],
@@ -1001,21 +997,21 @@
         array_primrec,
       ]);
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [1, 2, 3, 4, 5, 6, 7, 8], [5, lt], filter
     ],[
       [1, 2, 3, 4]
     ]);
-    #+end_src
+    ```
 
-*** map
+### map
 
-    #+begin_src js
+    ``` js
     function map (fun) {
       apply ([
         [],
@@ -1024,21 +1020,21 @@
         array_primrec,
       ]);
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [1, 2, 3, 4, 5, 6, 7, 8], [5, lt], map
     ],[
       [true, true, true, true, false, false, false, false]
     ]);
-    #+end_src
+    ```
 
-*** fold
+### fold
 
-    #+begin_src js
+    ``` js
     function fold (base, binfun) {
       apply ([
         [drop, base],
@@ -1046,21 +1042,21 @@
         array_primrec
       ]);
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     tes ([
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0, [add], fold
     ],[
       55
     ]);
-    #+end_src
+    ```
 
-* data
+# data
 
-*** note
+### note
 
     - poor kid's poor algebraic data type in dynamic language
       without type checker
@@ -1071,13 +1067,13 @@
 
     - each argument is an array
       for example
-      #+begin_src js :tangle no
+      ``` js :tangle no
       let tree = new DATA (
         ["empty"],
         ["leaf", "value"],
         ["node", self, self]
       );
-      #+end_src
+      ```
 
     - data-constructor do not check argument type at runtime
 
@@ -1086,9 +1082,9 @@
     - use 'self' to declare recursive data
       for I may add runtime check support in the future
 
-*** DATA
+### DATA
 
-    #+begin_src js
+    ``` js
     function self () {
       orz("this function is used as unique id");
     }
@@ -1140,13 +1136,13 @@
         }
       }
     }
-    #+end_src
+    ```
 
-*** match
+### match
 
     - no chech on length of input array
 
-    #+begin_src js
+    ``` js
     function match (value, pattern) {
       let type = car(pattern);
       let pattern_array = cdr(pattern);
@@ -1176,11 +1172,11 @@
             "is not of type:", type);
       }
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     {
       let tree = new DATA (
         ["empty"],
@@ -1208,19 +1204,19 @@
         3
       ]);
     }
-    #+end_src
+    ```
 
-*** >< matchgenrec
+### >< matchgenrec
 
-    #+begin_src js :tangle no
+    ``` js :tangle no
     function matchgenrec () {
 
     }
-    #+end_src
+    ```
 
-*** >< CLASS
+### >< CLASS
 
-    #+begin_src js :tangle no
+    ``` js :tangle no
     {
       let maybe = new DATA (
         ["just", "value"],
@@ -1237,15 +1233,15 @@
         ["map", () => {}]
       );
     }
-    #+end_src
+    ```
 
-* object
+# object
 
-*** note
+### note
 
-*** massage passing
+### massage passing
 
-    #+begin_src js
+    ``` js
     function ya (object, message) {
       if (function_p (object[message])) {
         let arg_length = object[message].length;
@@ -1264,19 +1260,19 @@
         argack.push (object[message]);
       }
     }
-    #+end_src
+    ```
 
-* >< string
+# >< string
 
-*** ><
+### ><
 
-    #+begin_src js
+    ``` js
 
-    #+end_src
+    ```
 
-* >< parser
+# >< parser
 
-*** note
+### note
 
     - text contains cursor
 
@@ -1285,38 +1281,38 @@
     - pand :: (parser parser -> parser)
     - por :: (parser parser -> parser)
 
-*** text
+### text
 
-    #+begin_src js
+    ``` js
     function TEXT () {
       this.string
 
     }
-    #+end_src
+    ```
 
-*** fail
+### fail
 
-    #+begin_src js
+    ``` js
     function fail () {
       return fail;
     };
-    #+end_src
+    ```
 
-*** ><
+### ><
 
-    #+begin_src js :tangle no
+    ``` js :tangle no
     [
       parser1, parser2, pand,
       asd, por
 
     ];
-    #+end_src
+    ```
 
-* repl
+# repl
 
-*** argack.print
+### argack.print
 
-    #+begin_src js
+    ``` js
     argack.print = function () {
       let index = 0;
       let arg_list = [];
@@ -1330,11 +1326,11 @@
       }
       cat("---------------\n");
     };
-    #+end_src
+    ```
 
-*** repl
+### repl
 
-    #+begin_src js
+    ``` js
     function repl (array, map) {
       let base_cursor = retack.cursor();
       apply (array);
@@ -1349,20 +1345,20 @@
         argack.print();
       }
     }
-    #+end_src
+    ```
 
-*** test
+### test
 
-    #+begin_src js
+    ``` js
     repl ([
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       0, [add], fold,
     ]);
-    #+end_src
+    ```
 
-* exports
+# exports
 
-  #+begin_src js
+  ``` js
   // module.exports = {
   // };
-  #+end_src
+  ```

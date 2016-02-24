@@ -760,6 +760,16 @@ function DATA () {
         return [this, constructor[0], a1, a2, a3, a4];
       };
     }
+    else if (constructor.length === 6) {
+      this[constructor[0]] = (a1, a2, a3, a4, a5) => {
+        return [this, constructor[0], a1, a2, a3, a4, a5];
+      };
+    }
+    else if (constructor.length === 7) {
+      this[constructor[0]] = (a1, a2, a3, a4, a5, a6) => {
+        return [this, constructor[0], a1, a2, a3, a4, a5, a6];
+      };
+    }
     else {
       orz("DATA fail on constructor:", constructor);
     }
@@ -821,9 +831,6 @@ function match (value, pattern) {
     3
   ]);
 }
-function matchgenrec () {
-
-}
 function ya (object, message) {
   if (function_p (object[message])) {
     let arg_length = object[message].length;
@@ -843,7 +850,9 @@ function ya (object, message) {
   }
 }
 
-
+function fail () {
+  return fail;
+};
 argack.print = function () {
   let index = 0;
   let arg_list = [];
@@ -874,6 +883,7 @@ function repl (array, map) {
 repl ([
   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   0, [add], fold,
+  fail
 ]);
 // module.exports = {
 // };
