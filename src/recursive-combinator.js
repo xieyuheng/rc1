@@ -439,9 +439,9 @@ function neg (a) { return -a; }
 
 function max (a, b) { return Math.max(a, b); }
 function min (a, b) { return Math.min(a, b); }
-function and (bool1, bool2) { return bool1 && bool2; }
-function or  (bool1, bool2) { return bool1 || bool2; }
-function not (bool) { return !bool; }
+function anp (bool1, bool2) { return bool1 && bool2; }
+function orp (bool1, bool2) { return bool1 || bool2; }
+function nop (bool) { return !bool; }
 function eq   (value1, value2) { return value1 === value2; }
 function lt   (value1, value2) { return value1 <  value2 ; }
 function gt   (value1, value2) { return value1 >  value2 ; }
@@ -724,6 +724,28 @@ tes ([
 ],[
   55
 ]);
+function ya (object, message) {
+  if (function_p (object[message])) {
+    let arg_length = object[message].length;
+    let arg_list = [];
+    while (arg_length !== 0) {
+      arg_list.push (argack.pop());
+      arg_length = arg_length - 1;
+    }
+    arg_list.reverse();
+    let result = object[message].apply(object, arg_list);
+    if (result !== undefined) {
+      argack.push(result);
+    }
+  }
+  else {
+    argack.push (object[message]);
+  }
+}
+function instance_p (value, fun_array) {
+  let fun = fun_array[0];
+  return (value instanceof fun);
+};
 function self () {
   orz("this function is used as unique id");
 }
@@ -831,32 +853,86 @@ function match (value, pattern) {
     3
   ]);
 }
-function ya (object, message) {
-  if (function_p (object[message])) {
-    let arg_length = object[message].length;
-    let arg_list = [];
-    while (arg_length !== 0) {
-      arg_list.push (argack.pop());
-      arg_length = arg_length - 1;
-    }
-    arg_list.reverse();
-    let result = object[message].apply(object, arg_list);
-    if (result !== undefined) {
-      argack.push(result);
-    }
-  }
-  else {
-    argack.push (object[message]);
-  }
+function data_member_p (value, data) {
+  apply ([
+    [[data, [DATA], instance_p, nop], [false],
+     [value, array_p, nop], [false],
+     [value, length, 1, lt], [false],
+     [true], [value, car, data, eq],
+    ],cond
+  ]);
 }
+{
+  let tree = new DATA (
+    ["empty"],
+    ["leaf", "value"],
+    ["node", self, self]
+  );
 
-function TEXT () {
-  this.string
-
+  tes ([
+    1, tree.leaf,
+    tree, data_member_p,
+    ["string"],
+    tree, data_member_p,
+  ],[
+    true,
+    false,
+  ]);
 }
-function fail () {
-  return fail;
+let list = new DATA (
+  ["empty"],
+  ["node", self, "value"]
+);
+{
+  function length () {
+    apply ([
+      [list,
+       ["empty", [0]],
+       ["node", [drop, length, 1, add]],
+      ],match
+    ]);
+  }
+
+  tes ([
+    list.empty,
+    1, list.node,
+    2, list.node,
+    3, list.node,
+    length
+  ],[
+    3
+  ]);
+}
+list.associate = function recur (a_list, key, equality) {
+  apply ([
+    a_list,
+    [list,
+     ["empty", [false]],
+     ["node", [
+       [dup, car, key, equality, apply],
+       [swap, drop],
+       [drop, key, equality, recur],
+       ifte]],
+    ],match
+  ]);
 };
+tes ([
+  list.empty,
+  [1,"k1"], list.node,
+  [2,"k2"], list.node,
+  [3,"k3"], list.node,
+  dup,
+  4, [eq], list.associate,
+  swap,
+  2, [eq], list.associate,
+],[
+  false,
+  [2,"k2"],
+]);
+
+
+
+
 argack.print = function () {
   let index = 0;
   let arg_list = [];
@@ -884,9 +960,11 @@ function repl (array, map) {
     argack.print();
   }
 }
-repl ([
-  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  0, [add], fold,
-]);
+{
+  repl ([
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    0, [add], fold,
+  ]);
+}
 // module.exports = {
 // };

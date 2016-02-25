@@ -3,11 +3,9 @@
 #+PROPERTY: tangle recursive-combinator.js
 
 * todo
+  - note parser
+    and sa editor
   - better imperative programming support
-  - parser combinator
-    some note about type & type class & monad
-  - org-mode parser
-    and better org-mode tangle
   - delimited continuation
   - some array processing function as macro
   - better repl
@@ -466,8 +464,6 @@
 
 * tes
 
-*** note
-
 *** tes
 
     #+begin_src js
@@ -604,9 +600,9 @@
 *** bool
 
     #+begin_src js
-    function and (bool1, bool2) { return bool1 && bool2; }
-    function or  (bool1, bool2) { return bool1 || bool2; }
-    function not (bool) { return !bool; }
+    function anp (bool1, bool2) { return bool1 && bool2; }
+    function orp (bool1, bool2) { return bool1 || bool2; }
+    function nop (bool) { return !bool; }
     #+end_src
 
 *** predicate
@@ -1058,6 +1054,46 @@
     ]);
     #+end_src
 
+* >< object
+
+*** ya
+
+    - massage passing
+
+    #+begin_src js
+    function ya (object, message) {
+      if (function_p (object[message])) {
+        let arg_length = object[message].length;
+        let arg_list = [];
+        while (arg_length !== 0) {
+          arg_list.push (argack.pop());
+          arg_length = arg_length - 1;
+        }
+        arg_list.reverse();
+        let result = object[message].apply(object, arg_list);
+        if (result !== undefined) {
+          argack.push(result);
+        }
+      }
+      else {
+        argack.push (object[message]);
+      }
+    }
+    #+end_src
+
+*** instance_p
+
+    - note that
+      object generaters are function
+      have to quote them in array to use them in 'apply'
+
+    #+begin_src js
+    function instance_p (value, fun_array) {
+      let fun = fun_array[0];
+      return (value instanceof fun);
+    };
+    #+end_src
+
 * data
 
 *** note
@@ -1210,6 +1246,42 @@
     }
     #+end_src
 
+*** data_member_p
+
+    #+begin_src js
+    function data_member_p (value, data) {
+      apply ([
+        [[data, [DATA], instance_p, nop], [false],
+         [value, array_p, nop], [false],
+         [value, length, 1, lt], [false],
+         [true], [value, car, data, eq],
+        ],cond
+      ]);
+    }
+    #+end_src
+
+*** test
+
+    #+begin_src js
+    {
+      let tree = new DATA (
+        ["empty"],
+        ["leaf", "value"],
+        ["node", self, self]
+      );
+
+      tes ([
+        1, tree.leaf,
+        tree, data_member_p,
+        ["string"],
+        tree, data_member_p,
+      ],[
+        true,
+        false,
+      ]);
+    }
+    #+end_src
+
 *** >< matchgenrec
 
     #+begin_src js :tangle no
@@ -1239,77 +1311,151 @@
     }
     #+end_src
 
-* object
+* list
 
-*** note
-
-*** massage passing
+*** list
 
     #+begin_src js
-    function ya (object, message) {
-      if (function_p (object[message])) {
-        let arg_length = object[message].length;
-        let arg_list = [];
-        while (arg_length !== 0) {
-          arg_list.push (argack.pop());
-          arg_length = arg_length - 1;
-        }
-        arg_list.reverse();
-        let result = object[message].apply(object, arg_list);
-        if (result !== undefined) {
-          argack.push(result);
-        }
+    let list = new DATA (
+      ["empty"],
+      ["node", self, "value"]
+    );
+    #+end_src
+
+*** test
+
+    #+begin_src js
+    {
+      function length () {
+        apply ([
+          [list,
+           ["empty", [0]],
+           ["node", [drop, length, 1, add]],
+          ],match
+        ]);
       }
-      else {
-        argack.push (object[message]);
-      }
+
+      tes ([
+        list.empty,
+        1, list.node,
+        2, list.node,
+        3, list.node,
+        length
+      ],[
+        3
+      ]);
     }
     #+end_src
 
-* >< string
-
-*** ><
+*** list.associate
 
     #+begin_src js
-
-    #+end_src
-
-* >< parser
-
-*** note
-
-    - text contains cursor
-
-    - parser = (text -> text (data or fail))
-
-    - pand :: (parser parser -> parser)
-    - por :: (parser parser -> parser)
-
-*** text
-
-    #+begin_src js
-    function TEXT () {
-      this.string
-
-    }
-    #+end_src
-
-*** fail
-
-    #+begin_src js
-    function fail () {
-      return fail;
+    list.associate = function recur (a_list, key, equality) {
+      apply ([
+        a_list,
+        [list,
+         ["empty", [false]],
+         ["node", [
+           [dup, car, key, equality, apply],
+           [swap, drop],
+           [drop, key, equality, recur],
+           ifte]],
+        ],match
+      ]);
     };
     #+end_src
 
-*** ><
+*** test
+
+    #+begin_src js
+    tes ([
+      list.empty,
+      [1,"k1"], list.node,
+      [2,"k2"], list.node,
+      [3,"k3"], list.node,
+      dup,
+      4, [eq], list.associate,
+      swap,
+      2, [eq], list.associate,
+    ],[
+      false,
+      [2,"k2"],
+    ]);
+    #+end_src
+
+* >< rbtree
+* >< string
+
+*** empty_string
+
+    #+begin_src js
+
+    #+end_src
+
+* >< line & text & sexp
+
+*** note
+
+    - string expression using array
+      mimic symbol expression using list
+
+*** LINE
+
+    - string
+      without line break
+      with line number
+      line number start from 1
+
+    #+begin_src js
+
+    #+end_src
+
+*** TEXT
+
+    - line array
+
+    #+begin_src js
+
+    #+end_src
+
+*** BLOCK
+
+    - a block of indented text
+
+    #+begin_src js
+
+    #+end_src
+
+*** BLOCK_STREAM
+
+*** head_block
+
+*** tail_block
+
+*** block_stream_to_sexp_array
+
+*** block_to_sexp
+
+*** test
+
+    #+begin_src cicada-language :tangle no
+    * k1
+      - c11
+        ...
+      * k2
+        - c21
+          ...
+      - c12
+    #+end_src
+
+*** test
 
     #+begin_src js :tangle no
-    [
-      parser1, parser2, pand,
-      asd, por
-
-    ];
+    ["*", "k1",
+     ["-", ["c11", "..."]],
+     ["*", "k2",
+      ["-", ["c21", "..."]]],
+     ["-", ["c12"]]];
     #+end_src
 
 * repl
@@ -1354,10 +1500,12 @@
 *** test
 
     #+begin_src js
-    repl ([
-      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      0, [add], fold,
-    ]);
+    {
+      repl ([
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        0, [add], fold,
+      ]);
+    }
     #+end_src
 
 * exports
