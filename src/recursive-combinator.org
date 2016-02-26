@@ -3,13 +3,13 @@
 #+PROPERTY: tangle recursive-combinator.js
 
 * todo
-  - note parser
-    and sa editor
-  - better imperative programming support
+  - note parser & sa editor
   - delimited continuation
   - some array processing function as macro
   - better repl
   - replace gulp with something else
+  - [maybe] match support many arguments
+  - [maybe] better imperative programming support
 * note
 
 *** beware of side-effect
@@ -325,7 +325,7 @@
 
       report: function () {
         console.log("\n");
-        console.log("- hash_table-table report_used");
+        console.log("- hash_table_table report_used");
         let index = 0;
         while (index < this.size) {
           let entry = this.index_to_entry(index);
@@ -1282,6 +1282,83 @@
     }
     #+end_src
 
+*** match_p
+
+    #+begin_src js
+    function match_p (value, data, constructor_string) {
+      apply ([
+        [value, data, data_member_p],
+        [value, cdr, car, constructor_string, eq],
+        [false],
+        ifte,
+      ]);
+    }
+    #+end_src
+
+*** test
+
+    #+begin_src js
+    {
+      let tree = new DATA (
+        ["empty"],
+        ["leaf", "value"],
+        ["node", self, self]
+      );
+
+      tes ([
+        1, tree.leaf,
+        tree, "leaf", match_p,
+      ],[
+        true,
+      ]);
+    }
+    #+end_src
+
+*** decons
+
+    #+begin_src js
+    function decons (array) {
+      let value_array = cdr (cdr (array));
+      argack.push_array (value_array);
+      return;
+    }
+    #+end_src
+
+*** test
+
+    #+begin_src js
+    {
+      let tree = new DATA (
+        ["empty"],
+        ["leaf", "value"],
+        ["node", self, self]
+      );
+
+      function depth () {
+        apply ([
+          [[dup, tree, "empty", match_p],
+           [drop, 0],
+           [dup, tree, "leaf", match_p],
+           [drop, 1],
+           [dup, tree, "node", match_p],
+           [decons,
+            depth, swap, depth,
+            max, 1, add],
+          ],cond
+        ]);
+      }
+
+      tes ([
+        1, tree.leaf,
+        1, tree.leaf, tree.node,
+        1, tree.leaf, tree.node,
+        depth
+      ],[
+        3
+      ]);
+    }
+    #+end_src
+
 *** >< matchgenrec
 
     #+begin_src js :tangle no
@@ -1350,9 +1427,9 @@
 *** list.associate
 
     #+begin_src js
-    list.associate = function recur (a_list, key, equality) {
+    list.associate = function recur (list1, key, equality) {
       apply ([
-        a_list,
+        list1,
         [list,
          ["empty", [false]],
          ["node", [
@@ -1458,6 +1535,122 @@
      ["-", ["c12"]]];
     #+end_src
 
+* note sequent
+
+*** separate namespace
+
+    - implemented by HASH_TABLE
+
+*** TYPE
+
+    - TYPE is the universe set
+      everything is element of this set
+
+    - a type is a named subset of TYPE
+      declared with some element constructors
+      element constructors have the type in succedent
+
+    - thus
+      one can use those element constructors
+      to construct element of this type
+
+    - element constructors are trivially reverse-able function
+      implemented by add a tag to its argument
+      for it is reverse-able
+      it can be used in pattern match
+      to make branches in function body
+
+*** algebraic data type
+
+    - 想要設計一個 algebraic data type 的時候
+      就想它的 data constructors 是什麼
+
+    - sequent 的 constructor 有
+      1. data
+      2. arrow [sequent] [sequent]
+      3. or [sequent]
+      是否要加上 variable 呢
+      區別是 variable 的出現方式是受限制的
+      所以也許應該另行處理
+      global-name 和 local-name 又不一樣
+
+    - 現在只要再想好如何實現 type 就行了
+      首先只處理 algebraic data type
+
+* >< sequent
+
+*** note
+
+    - the main type 'sequent' should be handled in cicada
+      also need the 'list' to help it
+
+*** >< name
+
+    - 'list' & 'sequent' are two types
+      first needed to be stored in name_hash_table
+
+    - in every name there are
+      1. type
+      2. sequent
+      3. ><><><
+
+*** >< literal
+
+    - how to write literal for this namespace
+
+*** type
+
+    #+begin_src js
+    function TYPE () {
+
+    }
+    #+end_src
+
+*** test
+
+    #+begin_src js
+    {
+      let sequent = new TYPE (
+        ["arrow", [self], [self]],
+        ["literal", "data"],
+        ["or", [self]]
+      );
+    }
+    #+end_src
+
+*** sequent
+
+    - data are such thing like
+      ["type-name", "constructor-name", ...]
+
+    - for example
+      ["sequent", "arrow", [...], [...]]
+
+    #+begin_src js
+    let sequent = new DATA (
+      ["arrow", [self], [self]],
+      ["literal", "data"],
+      ["or", [self]]
+    );
+    #+end_src
+
+*** type
+
+    - ><
+
+*** >< cut
+
+    #+begin_src js
+    function cut (sequent1, sequent2) {
+      apply ([
+        [[], [],
+         [], [],
+         [], [],
+        ],cond
+      ]);
+    }
+    #+end_src
+
 * repl
 
 *** argack.print
@@ -1500,12 +1693,12 @@
 *** test
 
     #+begin_src js
-    {
-      repl ([
-        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        0, [add], fold,
-      ]);
-    }
+    // {
+    //   repl ([
+    //     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    //     0, [add], fold,
+    //   ]);
+    // }
     #+end_src
 
 * exports

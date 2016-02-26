@@ -249,7 +249,7 @@ HASH_TABLE.prototype = {
 
   report: function () {
     console.log("\n");
-    console.log("- hash_table-table report_used");
+    console.log("- hash_table_table report_used");
     let index = 0;
     while (index < this.size) {
       let entry = this.index_to_entry(index);
@@ -879,6 +879,63 @@ function data_member_p (value, data) {
     false,
   ]);
 }
+function match_p (value, data, constructor_string) {
+  apply ([
+    [value, data, data_member_p],
+    [value, cdr, car, constructor_string, eq],
+    [false],
+    ifte,
+  ]);
+}
+{
+  let tree = new DATA (
+    ["empty"],
+    ["leaf", "value"],
+    ["node", self, self]
+  );
+
+  tes ([
+    1, tree.leaf,
+    tree, "leaf", match_p,
+  ],[
+    true,
+  ]);
+}
+function decons (array) {
+  let value_array = cdr (cdr (array));
+  argack.push_array (value_array);
+  return;
+}
+{
+  let tree = new DATA (
+    ["empty"],
+    ["leaf", "value"],
+    ["node", self, self]
+  );
+
+  function depth () {
+    apply ([
+      [[dup, tree, "empty", match_p],
+       [drop, 0],
+       [dup, tree, "leaf", match_p],
+       [drop, 1],
+       [dup, tree, "node", match_p],
+       [decons,
+        depth, swap, depth,
+        max, 1, add],
+      ],cond
+    ]);
+  }
+
+  tes ([
+    1, tree.leaf,
+    1, tree.leaf, tree.node,
+    1, tree.leaf, tree.node,
+    depth
+  ],[
+    3
+  ]);
+}
 let list = new DATA (
   ["empty"],
   ["node", self, "value"]
@@ -903,9 +960,9 @@ let list = new DATA (
     3
   ]);
 }
-list.associate = function recur (a_list, key, equality) {
+list.associate = function recur (list1, key, equality) {
   apply ([
-    a_list,
+    list1,
     [list,
      ["empty", [false]],
      ["node", [
@@ -933,6 +990,29 @@ tes ([
 
 
 
+function TYPE () {
+
+}
+{
+  let sequent = new TYPE (
+    ["arrow", [self], [self]],
+    ["literal", "data"],
+    ["or", [self]]
+  );
+}
+let sequent = new DATA (
+  ["arrow", [self], [self]],
+  ["literal", "data"],
+  ["or", [self]]
+);
+function cut (sequent1, sequent2) {
+  apply ([
+    [[], [],
+     [], [],
+     [], [],
+    ],cond
+  ]);
+}
 argack.print = function () {
   let index = 0;
   let arg_list = [];
@@ -960,11 +1040,11 @@ function repl (array, map) {
     argack.print();
   }
 }
-{
-  repl ([
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    0, [add], fold,
-  ]);
-}
+// {
+//   repl ([
+//     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+//     0, [add], fold,
+//   ]);
+// }
 // module.exports = {
 // };
