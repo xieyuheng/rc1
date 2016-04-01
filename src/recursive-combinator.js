@@ -125,151 +125,6 @@ STACK.prototype = {
   asr(array[1] === 1);
   asr(array[2] === 2);
 }
-function HASH_TABLE_ENTRY (index) {
-  this.index = index;
-  this.key = null;
-  this.value = null;
-  this.orbit_length = 0;
-  this.orbiton = 0;
-}
-
-HASH_TABLE_ENTRY.prototype = {
-
-  occured: function () {
-    return this.key !== null;
-  },
-
-  used: function () {
-    return this.value !== null;
-  },
-
-  no_collision: function () {
-    return this.index === this.orbiton;
-  },
-
-};
-
-function HASH_TABLE (size, key_equal, hash) {
-  this.size = size;
-  this.key_equal = key_equal;
-  this.hash = hash;
-  this.array = new Array(this.size);
-  this.counter = 0;
-  let i = 0;
-  while (i < this.size) {
-    this.array[i] = new HASH_TABLE_ENTRY(i);
-    i = 1 + i;
-  }
-}
-
-HASH_TABLE.prototype = {
-
-  insert: function (key) {
-    // key -> index
-    //     -> null -- denotes the hash_table is filled
-    let orbit_index = this.hash(key, 0);
-    let counter = 0;
-    while (true) {
-      let index = this.hash(key, counter);
-      let entry = this.index_to_entry(index);
-      if (!entry.occured()) {
-        entry.key = key;
-        entry.orbiton = orbit_index;
-        let orbit_entry = this.index_to_entry(orbit_index);
-        orbit_entry.orbit_length = 1 + counter;
-        this.counter = 1 + this.counter;
-        return index;
-      }
-      else if (this.key_equal(key, entry.key)) {
-        return index;
-      }
-      else if (counter === this.size) {
-        return null;
-      }
-      else {
-        counter = 1 + counter;
-      }
-    }
-  },
-
-  search: function (key) {
-    // key -> index
-    //     -> null -- denotes key not occured
-    let counter = 0;
-    while (true) {
-      let index = this.hash(key, counter);
-      let entry = this.index_to_entry(index);
-      if (!entry.occured()) {
-        return null;
-      }
-      else if (this.key_equal(key, entry.key)) {
-        return index;
-      }
-      else if (counter === this.size) {
-        return null;
-      }
-      else {
-        counter = 1 + counter;
-      }
-    }
-  },
-
-  key_to_index: function (key) {
-    let index = this.insert(key);
-    if (index !== null) {
-      return index;
-    }
-    else {
-      console.log("hash_table is filled");
-      throw "hash_table is filled";
-    }
-  },
-
-  index_to_entry: function (index) {
-    return this.array[index];
-  },
-
-  key_to_entry: function (key) {
-    return index_to_entry(key_to_index(key));
-  },
-
-  report_orbit: function (index, counter) {
-    let entry = this.index_to_entry(index);
-    while (counter < entry.orbit_length) {
-      let key = entry.key;
-      let next_index = this.hash(key, counter);
-      let next_entry = this.index_to_entry(next_index);
-      if (index === next_entry.orbiton) {
-        cat("  - ", next_index, " ",
-            next_entry.key);
-      }
-      counter = 1 + counter;
-    }
-  },
-
-  report: function () {
-    console.log("\n");
-    console.log("- hash_table_table report_used");
-    let index = 0;
-    while (index < this.size) {
-      let entry = this.index_to_entry(index);
-      if (entry.occured() && entry.no_collision()) {
-        cat("  - ", index, " ",
-            entry.key, " // ",
-            entry.orbit_length);
-        if (entry.used()) {
-          cat("      ", entry.value);
-        }
-        this.report_orbit(index, 1);
-      }
-      index = 1 + index;
-    }
-    cat("\n");
-    cat("- used : ", this.counter);
-    cat("- free : ", this.size - this.counter);
-  },
-
-};
 const argack = new STACK();
 const retack = new STACK();
 function apply (array) {
@@ -990,26 +845,371 @@ tes ([
 
 
 
-function TYPE () {
+function HASH_TABLE_ENTRY (index) {
+  this.index = index;
+  this.key = null;
+  this.value = null;
+  this.orbit_length = 0;
+  this.orbiton = 0;
+}
 
+HASH_TABLE_ENTRY.prototype = {
+
+  occured: function () {
+    return this.key !== null;
+  },
+
+  used: function () {
+    return this.value !== null;
+  },
+
+  no_collision: function () {
+    return this.index === this.orbiton;
+  },
+
+};
+
+function HASH_TABLE (size, key_equal, hash) {
+  this.size = size;
+  this.key_equal = key_equal;
+  this.hash = hash;
+  this.array = new Array(this.size);
+  this.counter = 0;
+  let i = 0;
+  while (i < this.size) {
+    this.array[i] = new HASH_TABLE_ENTRY(i);
+    i = 1 + i;
+  }
+}
+
+HASH_TABLE.prototype = {
+
+  insert: function (key) {
+    // key -> index
+    //     -> null -- denotes the hash_table is filled
+    let orbit_index = this.hash(key, 0);
+    let counter = 0;
+    while (true) {
+      let index = this.hash(key, counter);
+      let entry = this.index_to_entry(index);
+      if (!entry.occured()) {
+        entry.key = key;
+        entry.orbiton = orbit_index;
+        let orbit_entry = this.index_to_entry(orbit_index);
+        orbit_entry.orbit_length = 1 + counter;
+        this.counter = 1 + this.counter;
+        return index;
+      }
+      else if (this.key_equal(key, entry.key)) {
+        return index;
+      }
+      else if (counter === this.size) {
+        return null;
+      }
+      else {
+        counter = 1 + counter;
+      }
+    }
+  },
+
+  search: function (key) {
+    // key -> index
+    //     -> null -- denotes key not occured
+    let counter = 0;
+    while (true) {
+      let index = this.hash(key, counter);
+      let entry = this.index_to_entry(index);
+      if (!entry.occured()) {
+        return null;
+      }
+      else if (this.key_equal(key, entry.key)) {
+        return index;
+      }
+      else if (counter === this.size) {
+        return null;
+      }
+      else {
+        counter = 1 + counter;
+      }
+    }
+  },
+
+  key_to_index: function (key) {
+    let index = this.insert(key);
+    if (index !== null) {
+      return index;
+    }
+    else {
+      console.log("hash_table is filled");
+      throw "hash_table is filled";
+    }
+  },
+
+  index_to_entry: function (index) {
+    return this.array[index];
+  },
+
+  key_to_entry: function (key) {
+    return index_to_entry(key_to_index(key));
+  },
+
+  set: function (index, value) {
+    this.index_to_entry(index).value = value;
+  },
+
+  get: function  (index) {
+    return this.index_to_entry(index).value;
+  },
+
+  report_orbit: function (index, counter) {
+    let entry = this.index_to_entry(index);
+    while (counter < entry.orbit_length) {
+      let key = entry.key;
+      let next_index = this.hash(key, counter);
+      let next_entry = this.index_to_entry(next_index);
+      if (index === next_entry.orbiton) {
+        cat("  - ", next_index, " ",
+            next_entry.key);
+      }
+      counter = 1 + counter;
+    }
+  },
+
+  report: function () {
+    console.log("\n");
+    console.log("- hash_table_table report_used");
+    let index = 0;
+    while (index < this.size) {
+      let entry = this.index_to_entry(index);
+      if (entry.occured() && entry.no_collision()) {
+        cat("  - ", index, " ",
+            entry.key, " // ",
+            entry.orbit_length);
+        if (entry.used()) {
+          cat("      ", entry.value);
+        }
+        this.report_orbit(index, 1);
+      }
+      index = 1 + index;
+    }
+    cat("\n");
+    cat("- used : ", this.counter);
+    cat("- free : ", this.size - this.counter);
+  },
+
+};
+function string_to_sum (string) {
+  let sum = 0;
+  let max_step = 10;
+  let i = 0;
+  while (i < string.length) {
+    sum = sum +
+      string.codePointAt(i) *
+      (2 << Math.min(i, max_step));
+    i = 1 + i;
+  }
+  return sum;
+}
+const tag_hash_table = new HASH_TABLE (
+  // prime table size
+  997,
+  // key_equal
+  function (key1, key2) {
+    return key1 === key2;
+  },
+  // hash
+  function (key, counter) {
+    return (counter + string_to_sum(key)) % 997;
+  }
+);
+{
+  let index = tag_hash_table.key_to_index("testkey0");
+  let key = tag_hash_table.index_to_entry(index).key;
+  asr(key === "testkey0");
+  // tag_hash_table.report();
+}
+function array_equal (a, b) {
+  if (a === b) {
+    return true;
+  }
+  if ((a === null) || (b === null)) {
+    return false;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  let i = 0;
+  while (i < a.length) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+    i = 1 + i;
+  }
+  return true;
+}
+
+function array_remove_dup (orig_array) {
+  let array = orig_array.map((element) => { return element; });
+  array.sort();
+  let result = [];
+  let i = 0;
+  while (i < array.length) {
+    if (result[result.length - 1] === array[i]) {
+      // do nothing
+    }
+    else {
+      result.push(array[i]);
+    }
+    i = 1 + i;
+  }
+  return result;
+}
+
+function array_remove (array, value) {
+  let result = [];
+  for (let element of array) {
+    if (element === value) {
+      // do nothing
+    }
+    else {
+      result.push(element);
+    }
+  }
+  return result;
+}
+const name_hash_table = new HASH_TABLE (
+  // prime table size
+  997,
+  // key_equal
+  function (key1, key2) {
+    return array_equal (
+      array_remove_dup(key1),
+      array_remove_dup(key2));
+  },
+  // hash
+  function (key, counter) {
+    let sum = array_remove_dup(key)
+        .map(string_to_sum)
+        .reduce((sum, v) => { return sum + v; });
+    return (counter + sum) % 997;
+  }
+);
+function string_to_key (string) {
+  return array_remove(string.split(":"), "");
+}
+
+function key_to_string (key) {
+  let result = "";
+  for (let element of key) {
+    result = result.concat(":", element);
+  }
+  return result.substring(1);
+}
+
+function name (string) {
+  return name_hash_table.key_to_index(string_to_key(string));
+}
+
+function name_to_string (name) {
+  return key_to_string(name_hash_table.index_to_entry(name).key);
 }
 {
-  let sequent = new TYPE (
-    ["arrow", [self], [self]],
-    ["literal", "data"],
-    ["or", [self]]
+  name("testkey0");
+  name("testkey1");
+  name("testkey2");
+  name("testkey3");
+  name("testkey4");
+  name("testkey1:testkey2:testkey3");
+  name(":::testkey1:testkey2:testkey3");
+  name("testkey1:testkey2");
+  name("testkey4:testkey4:testkey1");
+  name("testkey4:testkey1");
+
+  asr(name_hash_table.get(name("k1")) === null);
+
+  name_hash_table.set(name("k1:k1:k1"), 1);
+  asr(name_hash_table.get(name("k1")) === 1);
+
+  name_hash_table.set(name("k1:k1:k1"), { k1: 1 });
+  asr(equal(
+    name_hash_table.get(name("k1")),
+    { k1: 1 }
+  ));
+
+  name_hash_table.set(name("k1:k1:k1"), null);
+  asr(name_hash_table.get(name("k1")) === null);
+
+  // name_hash_table.report();
+}
+function lit (array) {
+  let result = [];
+  for (let element of array) {
+    if (string_p (element)) {
+      result.push(name(element));
+    }
+    else if (array_p(element)) {
+      result.push(lit(element));
+    }
+    else {
+      orz ("- lit\n",
+           "  can not handle element:", element ,"\n",
+           "  in array:", array, "\n");
+    }
+  }
+  return result;
+}
+// {
+//   cat (
+//     lit(
+//       ["list", "cons", ["number", "1"],
+//        ["list", "cons", ["number", "2"],
+//         ["list", "cons", ["number", "3"],
+//          ["list", "null"]]]]
+//     )
+//   );
+// }
+function def (string, type, data) {
+  name_hash_table.set(
+    name(string),
+    {
+      type: type,
+      data: data
+    }
   );
 }
-let sequent = new DATA (
-  ["arrow", [self], [self]],
-  ["literal", "data"],
-  ["or", [self]]
+
+function ref (string) {
+  return name_hash_table.get(
+    name(string)
+  ).data;
+}
+
+function reftype (string) {
+  return name_hash_table.get(
+    name(string)
+  ).type;
+}
+{
+  def (
+    "type",
+    name("type"),
+    name("type")
+  );
+
+  asr(ref("type") === name("type"));
+  asr(reftype("type") === name("type"));
+}
+def (
+  "type",
+  lit (["type", "type", "type"]),
+  lit (["type", "type", "type"])
 );
-function cut (sequent1, sequent2) {
+function cut (sequent, data) {
   apply ([
-    [[], [],
-     [], [],
-     [], [],
+    [[data, car, "sequent", eq],
+     [],
+     [true],
+     [],
     ],cond
   ]);
 }
