@@ -1,20 +1,20 @@
 {
   "author": "XIE Yuheng",
   "license": "ISC",
-  "name": "recursive-combinator",
+  "name": "rc1",
   "version": "0.0.1",
-  "description": "recursive-combinator",
+  "description": "rc1",
   "keywords": [
     "language",
     "interpreter"
   ],
-  "main": "src/recursive-combinator.js",
+  "main": "src/rc1.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xieyuheng/recursive-combinator.git"
+    "url": "git+https://github.com/xieyuheng/rc1.git"
   },
   "bugs": {
-    "url": "https://github.com/xieyuheng/recursive-combinator/issues"
+    "url": "https://github.com/xieyuheng/rc1/issues"
   },
   "homepage": "http://cicada-language.github.io",
   "devDependencies": {
