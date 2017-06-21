@@ -115,6 +115,8 @@
     }
     #+end_src
 
+* apply & eva
+
 *** STACK
 
     #+begin_src js
@@ -191,44 +193,22 @@
     }
     #+end_src
 
-* argack
-
-  #+begin_src js
-  const argack = new STACK();
-  #+end_src
-
-* retack
-
-  #+begin_src js
-  const retack = new STACK();
-  #+end_src
-
-* apply
-
-*** apply
+*** ds & rs
 
     #+begin_src js
-    function apply (array) {
-      if (array.length === 0) {
-        // do nothing
-      }
-      else {
-        retack.push(new RETACK_POINT(array));
-      }
-    }
+    const ds = new STACK();
+    const rs = new STACK();
     #+end_src
 
-* eva
-
-*** RETACK_POINT
+*** RSP
 
     #+begin_src js
-    function RETACK_POINT (array) {
+    function RSP (array) {
       this.array = array;
       this.cursor = 0;
     }
 
-    RETACK_POINT.prototype = {
+    RSP.prototype = {
 
       get_current_jo: function () {
         return this.array[this.cursor];
@@ -245,28 +225,41 @@
     };
     #+end_src
 
+*** apply
+
+    #+begin_src js
+    function apply (array) {
+      if (array.length === 0) {
+        // do nothing
+      }
+      else {
+        rs.push(new RSP(array));
+      }
+    }
+    #+end_src
+
 *** eva
 
-    - main loop of the retack interpreter
+    - main loop of the rs interpreter
 
     - note that
       proper tail call is handled here
 
-    - retack_point passing
-      thus eva_dispatch have the current retack_point
+    - rs_point passing
+      thus eva_dispatch have the current rs_point
 
     #+begin_src js
     function eva (array, map) {
-      let base_cursor = retack.cursor();
+      let base_cursor = rs.cursor();
       apply (array);
-      while (retack.cursor() > base_cursor) {
-        let retack_point = retack.pop();
-        let jo = retack_point.get_current_jo();
-        if (!retack_point.at_tail_position()) {
-          retack_point.next();
-          retack.push(retack_point);
+      while (rs.cursor() > base_cursor) {
+        let rs_point = rs.pop();
+        let jo = rs_point.get_current_jo();
+        if (!rs_point.at_tail_position()) {
+          rs_point.next();
+          rs.push(rs_point);
         }
-        eva_dispatch(jo, retack_point);
+        eva_dispatch(jo, rs_point);
       }
     }
     #+end_src
@@ -274,7 +267,7 @@
 *** eva_dispatch
 
     #+begin_src js
-    function eva_dispatch (jo, retack_point) {
+    function eva_dispatch (jo, rs_point) {
       if (function_p(jo)) {
         eva_primitive_function(jo);
       }
@@ -282,7 +275,7 @@
         // do nothing
       }
       else {
-        argack.push(jo);
+        ds.push(jo);
       }
     }
     #+end_src
@@ -294,13 +287,13 @@
       let count_down = jo.length;
       let arg_list = [];
       while (count_down !== 0) {
-        arg_list.push(argack.pop());
+        arg_list.push(ds.pop());
         count_down = count_down - 1;
       }
       arg_list.reverse();
       let result = jo.apply(this, arg_list);
       if (result !== undefined) {
-        argack.push(result);
+        ds.push(result);
       }
     }
     #+end_src
@@ -311,12 +304,12 @@
 
     #+begin_src js
     function tes (array1, array2) {
-      let cursor = argack.cursor();
+      let cursor = ds.cursor();
       eva(array1);
-      let result1 = argack.n_pop(argack.cursor() - cursor);
-      cursor = argack.cursor();
+      let result1 = ds.n_pop(ds.cursor() - cursor);
+      cursor = ds.cursor();
       eva(array2);
-      let result2 = argack.n_pop(argack.cursor() - cursor);
+      let result2 = ds.n_pop(ds.cursor() - cursor);
       let success = equal(result1, result2);
       if (success) {
         // nothing
@@ -484,7 +477,7 @@
     #+begin_src js
     function ifte (predicate_array, true_array, false_array) {
       eva (predicate_array);
-      if (argack.pop()) {
+      if (ds.pop()) {
         eva(true_array);
       }
       else {
@@ -502,10 +495,10 @@
         let antecedent = sequent_array[index];
         let succedent = sequent_array[index + 1];
         eva (antecedent);
-        let result = argack.pop();
+        let result = ds.pop();
         if (result) {
-          let new_retack_point = new RETACK_POINT(succedent);
-          retack.push (new_retack_point);
+          let new_rs_point = new RSP(succedent);
+          rs.push (new_rs_point);
           return;
         }
         index = 2 + index;
@@ -538,7 +531,7 @@
       rec_array.push (after_array);
       rec_array.push (linrec);
       eva (predicate_array);
-      if (argack.pop()) {
+      if (ds.pop()) {
         eva (base_array);
       }
       else {
@@ -575,14 +568,14 @@
       rec_array.push (after_array);
       rec_array.push (binrec);
       eva (predicate_array);
-      if (argack.pop()) {
+      if (ds.pop()) {
         eva (base_array);
       }
       else {
         eva (before_array);
-        let a2 = argack.pop();
+        let a2 = ds.pop();
         eva (rec_array);
-        argack.push (a2);
+        ds.push (a2);
         eva (rec_array);
         eva (after_array);
       }
@@ -600,12 +593,12 @@
       rec_array.push (after_array);
       rec_array.push (genrec);
       eva (predicate_array);
-      if (argack.pop()) {
+      if (ds.pop()) {
         eva (base_array);
       }
       else {
         eva (before_array);
-        argack.push (rec_array);
+        ds.push (rec_array);
         eva (after_array);
       }
     }
@@ -621,7 +614,7 @@
       rec_array.push (before_array);
       rec_array.push (tailrec);
       eva (predicate_array);
-      if (argack.pop()) {
+      if (ds.pop()) {
         eva (base_array);
       }
       else {
@@ -897,7 +890,7 @@
     ]);
     #+end_src
 
-* >< object
+* object
 
 *** ya
 
@@ -909,17 +902,17 @@
         let arg_length = object[message].length;
         let arg_list = [];
         while (arg_length !== 0) {
-          arg_list.push (argack.pop());
+          arg_list.push (ds.pop());
           arg_length = arg_length - 1;
         }
         arg_list.reverse();
         let result = object[message].apply(object, arg_list);
         if (result !== undefined) {
-          argack.push(result);
+          ds.push(result);
         }
       }
       else {
-        argack.push (object[message]);
+        ds.push (object[message]);
       }
     }
     #+end_src
@@ -937,386 +930,21 @@
     };
     #+end_src
 
-* data
-
-*** note
-
-    - poor kid's poor algebraic data type in dynamic language
-      without type checker
-      with faked poor pattern match without named variables
-
-    - use new DATA (...)
-      to define new algebraic data
-
-    - each argument is an array
-      for example
-      #+begin_src js :tangle no
-      let tree = new DATA (
-        ["empty"],
-        ["leaf", "value"],
-        ["node", self, self]
-      );
-      #+end_src
-
-    - data-constructor do not check argument type at runtime
-
-    - only the length in the declaration is used by data-constructor
-
-    - use 'self' to declare recursive data
-      for I may add runtime check support in the future
-
-*** DATA
-
-    #+begin_src js
-    function self () {
-      orz("this function is used as unique id");
-    }
-
-    function DATA () {
-      let constructor_array = [];
-      for (let argument of arguments) {
-        constructor_array.push(argument);
-      }
-      this.constructor_array = constructor_array;
-      for (let constructor of constructor_array) {
-        if (constructor.length === 1) {
-          this[constructor[0]] = () => {
-            return [this, constructor[0]];
-          };
-        }
-        else if (constructor.length === 2) {
-          this[constructor[0]] = (a1) => {
-            return [this, constructor[0], a1];
-          };
-        }
-        else if (constructor.length === 3) {
-          this[constructor[0]] = (a1, a2) => {
-            return [this, constructor[0], a1, a2];
-          };
-        }
-        else if (constructor.length === 4) {
-          this[constructor[0]] = (a1, a2, a3) => {
-            return [this, constructor[0], a1, a2, a3];
-          };
-        }
-        else if (constructor.length === 5) {
-          this[constructor[0]] = (a1, a2, a3, a4) => {
-            return [this, constructor[0], a1, a2, a3, a4];
-          };
-        }
-        else if (constructor.length === 6) {
-          this[constructor[0]] = (a1, a2, a3, a4, a5) => {
-            return [this, constructor[0], a1, a2, a3, a4, a5];
-          };
-        }
-        else if (constructor.length === 7) {
-          this[constructor[0]] = (a1, a2, a3, a4, a5, a6) => {
-            return [this, constructor[0], a1, a2, a3, a4, a5, a6];
-          };
-        }
-        else {
-          orz("DATA fail on constructor:", constructor);
-        }
-      }
-    }
-    #+end_src
-
-*** match
-
-    - no chech on length of input array
-
-    #+begin_src js
-    function match (value, pattern) {
-      let type = car(pattern);
-      let pattern_array = cdr(pattern);
-      if (!array_p(value)) {
-        orz("match fail\n",
-            "value is not array:", value);
-      }
-      if (value.length < 1) {
-        orz("match fail\n",
-            "value is not a taged data:", value);
-      }
-      if (value[0] === type) {
-        for (let clause of pattern_array) {
-          if (value[1] === clause[0]) {
-            argack.push_array(cdr(cdr(value)));
-            apply(clause[1]);
-            return;
-          }
-        }
-        orz("match fail\n",
-            "can not match value:", value, "\n",
-            "with pattern:", pattern);
-      }
-      else {
-        orz("match fail\n",
-            "value:", value, "\n",
-            "is not of type:", type);
-      }
-    }
-    #+end_src
-
-*** test
-
-    #+begin_src js
-    {
-      let tree = new DATA (
-        ["empty"],
-        ["leaf", "value"],
-        ["node", self, self]
-      );
-
-      function depth () {
-        apply ([
-          [tree,
-           ["empty", [0]],
-           ["leaf", [drop, 1]],
-           ["node", [depth, swap, depth,
-                     max, 1, add]],
-          ],match
-        ]);
-      }
-
-      tes ([
-        1, tree.leaf,
-        1, tree.leaf, tree.node,
-        1, tree.leaf, tree.node,
-        depth
-      ],[
-        3
-      ]);
-    }
-    #+end_src
-
-*** data_member_p
-
-    #+begin_src js
-    function data_member_p (value, data) {
-      apply ([
-        [[data, [DATA], instance_p, nop], [false],
-         [value, array_p, nop], [false],
-         [value, length, 1, lt], [false],
-         [true], [value, car, data, eq],
-        ],cond
-      ]);
-    }
-    #+end_src
-
-*** test
-
-    #+begin_src js
-    {
-      let tree = new DATA (
-        ["empty"],
-        ["leaf", "value"],
-        ["node", self, self]
-      );
-
-      tes ([
-        1, tree.leaf,
-        tree, data_member_p,
-        ["string"],
-        tree, data_member_p,
-      ],[
-        true,
-        false,
-      ]);
-    }
-    #+end_src
-
-*** match_p
-
-    #+begin_src js
-    function match_p (value, data, constructor_string) {
-      apply ([
-        [value, data, data_member_p],
-        [value, cdr, car, constructor_string, eq],
-        [false],
-        ifte,
-      ]);
-    }
-    #+end_src
-
-*** test
-
-    #+begin_src js
-    {
-      let tree = new DATA (
-        ["empty"],
-        ["leaf", "value"],
-        ["node", self, self]
-      );
-
-      tes ([
-        1, tree.leaf,
-        tree, "leaf", match_p,
-      ],[
-        true,
-      ]);
-    }
-    #+end_src
-
-*** decons
-
-    #+begin_src js
-    function decons (array) {
-      let value_array = cdr (cdr (array));
-      argack.push_array (value_array);
-      return;
-    }
-    #+end_src
-
-*** test
-
-    #+begin_src js
-    {
-      let tree = new DATA (
-        ["empty"],
-        ["leaf", "value"],
-        ["node", self, self]
-      );
-
-      function depth () {
-        apply ([
-          [[dup, tree, "empty", match_p],
-           [drop, 0],
-           [dup, tree, "leaf", match_p],
-           [drop, 1],
-           [dup, tree, "node", match_p],
-           [decons,
-            depth, swap, depth,
-            max, 1, add],
-          ],cond
-        ]);
-      }
-
-      tes ([
-        1, tree.leaf,
-        1, tree.leaf, tree.node,
-        1, tree.leaf, tree.node,
-        depth
-      ],[
-        3
-      ]);
-    }
-    #+end_src
-
-*** >< matchgenrec
-
-    #+begin_src js :tangle no
-    function matchgenrec () {
-
-    }
-    #+end_src
-
-*** >< CLASS
-
-    #+begin_src js :tangle no
-    {
-      let maybe = new DATA (
-        ["just", "value"],
-        ["nothing"]
-      );
-
-      let list = new DATA (
-        ["head", "value"],
-        ["tail", self]
-      );
-
-      let functor = new CLASS (
-        ["map", () => {}],
-        ["map", () => {}]
-      );
-    }
-    #+end_src
-
-* list
-
-*** list
-
-    #+begin_src js
-    let list = new DATA (
-      ["empty"],
-      ["node", self, "value"]
-    );
-    #+end_src
-
-*** test
-
-    #+begin_src js
-    {
-      function length () {
-        apply ([
-          [list,
-           ["empty", [0]],
-           ["node", [drop, length, 1, add]],
-          ],match
-        ]);
-      }
-
-      tes ([
-        list.empty,
-        1, list.node,
-        2, list.node,
-        3, list.node,
-        length
-      ],[
-        3
-      ]);
-    }
-    #+end_src
-
-*** list.associate
-
-    #+begin_src js
-    list.associate = function recur (list1, key, equality) {
-      apply ([
-        list1,
-        [list,
-         ["empty", [false]],
-         ["node", [
-           [dup, car, key, equality, apply],
-           [swap, drop],
-           [drop, key, equality, recur],
-           ifte]],
-        ],match
-      ]);
-    };
-    #+end_src
-
-*** test
-
-    #+begin_src js
-    tes ([
-      list.empty,
-      [1,"k1"], list.node,
-      [2,"k2"], list.node,
-      [3,"k3"], list.node,
-      dup,
-      4, [eq], list.associate,
-      swap,
-      2, [eq], list.associate,
-    ],[
-      false,
-      [2,"k2"],
-    ]);
-    #+end_src
-
 * >< string
+
 * repl
 
-*** argack.print
+*** ds.print
 
     #+begin_src js
-    argack.print = function () {
+    ds.print = function () {
       let index = 0;
       let arg_list = [];
-      while (index < argack.cursor()) {
-        arg_list.push (argack.array[index]);
+      while (index < ds.cursor()) {
+        arg_list.push (ds.array[index]);
         index = 1 + index;
       }
-      cat("------", argack.cursor(), "------");
+      cat("------", ds.cursor(), "------");
       for (let arg of arg_list) {
         cat (arg);
       }
@@ -1328,17 +956,17 @@
 
     #+begin_src js
     function repl (array, map) {
-      let base_cursor = retack.cursor();
+      let base_cursor = rs.cursor();
       apply (array);
-      while (retack.cursor() > base_cursor) {
-        let retack_point = retack.pop();
-        let jo = retack_point.get_current_jo();
-        if (!retack_point.at_tail_position()) {
-          retack_point.next();
-          retack.push(retack_point);
+      while (rs.cursor() > base_cursor) {
+        let rs_point = rs.pop();
+        let jo = rs_point.get_current_jo();
+        if (!rs_point.at_tail_position()) {
+          rs_point.next();
+          rs.push(rs_point);
         }
-        eva_dispatch(jo, retack_point);
-        argack.print();
+        eva_dispatch(jo, rs_point);
+        ds.print();
       }
     }
     #+end_src
@@ -1346,12 +974,28 @@
 *** test
 
     #+begin_src js
-    // {
-    //   repl ([
-    //     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    //     0, [add], fold,
-    //   ]);
-    // }
+    {
+
+      function DD () {
+        this.d1 = "d1";
+        this.d2 = "d2";
+      }
+      DD.prototype = {
+
+        k1: function () {
+          return this.d1.length;
+        },
+      };
+
+      let d = new DD();
+
+      repl ([
+        d,
+        d, "d1", ya,
+        d, "k1", ya,
+      ]);
+
+    }
     #+end_src
 
 * exports

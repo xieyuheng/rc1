@@ -1,0 +1,683 @@
+* rc1
+
+  - 這個語言就將作爲我將來所使用的最底層語言
+    它講體現這個常識
+    即 所有的程序都是對機器狀態之改變
+
+  - 名字來源於最初所寫的 recursive-combinator
+
+  - rc1 = smalltalk + meta-programming-with-sexp + recursive-combinator
+
+  - 使用編譯到 js 的實現方式
+    在編譯的過程中考慮元編程能力
+    即
+    1. 語法本身 作爲數據 如何暴露於語言之內
+    2. 被編譯出來的函數 作爲數據 如何暴露於語言之內
+
+* 爲了 at1
+
+  - rc1 中的 oo 機制 可能算是爲 at1 設計的
+    因爲 at1 語法不定 而經常需要添加新的數據類型
+    [甚至還要能動態添加之]
+
+  - at1 爲語義新的需求
+    因此 是語法語義設計之 應用源泉
+
+* hoare logic
+
+  - hoare logic 與類型系統靈感
+
+* 關於 oo 與 functional
+
+  - x ::
+       增減代碼的方式有別
+       導致
+       oo 中可以動態地新增新的數據類型
+       而 functional 中可以動態地生成新的函數
+
+* 關於 oo
+
+  - 術語
+    | 消息 | 數據 |
+    | 方法 | 對象 |
+
+  - 一個數據可能有很多域
+    不同的域可能是爲了不同的方法所準備的
+    - 比如 lambda 的 type 域 爲 type-check 這個方法而準備
+      比如 lambda 的 data 域 爲 compute 這個方法而準備
+
+  - 定義每個數據時
+    也要定義它的一系列方法
+    一個數據的方法可以在之後定義
+    一個方法以這種數據類型爲主要參數
+    它可能有一些控制結構
+    並且查看某些域並向這些域中的數據發送消息
+    - 比如 lambda 的 compute 要遍歷其 data 域
+      並向其中數據[遞歸地]發送 compute 消息
+      比如 lambda 的 type-check 要遍歷其 type 域
+      並向其中數據[遞歸地]發送 type-check 消息
+
+  - 方法的效果都是改變機器的狀態
+
+  - 注意 實現層 和 被實現層 兩層語言
+
+  - 被完全展開的語法 要能夠清晰簡單地描述如何定義數據
+
+  --------------------
+
+  - k ::
+       注意 jo 與 data 有別
+       如上所述 應該是 jo
+
+  - x ::
+       jo 與 data 有別但是又有重疊
+       可以依接口函數來區別類
+
+  - k ::
+       我們好像不需要 oo 中的繼承機制
+
+  - x ::
+       有時同一個方法可以作用於多種類型
+       繼承機制 可能就是爲此
+
+  - k ::
+       我們可以在使用 js 的同時
+       用 js 寫一個 runtime 來改變它
+       然後把 sexp 的簡單語法 編譯到這個 runtime 的特殊 js
+       可爲找錯而實現 查找可接受某組 message 的所有數據類型 等等
+
+  - x ::
+       還有很多問題
+    1. 傳遞消息的語法
+       後綴 或 中綴
+    2. 數據 消息 函數 之分
+
+  - k ::
+       數據構造子 就是 oo 的 class
+       與 list 的 無名 pattern-matching 不同
+       這裏的每個數據之域都要有名
+       如果說 函數都是消息
+       那麼 數據構造子 作爲函數就是特殊的消息
+       因爲沒有數據來接受這個消息
+       [或者說接受這個消息的數據被隱藏了起來]
+
+  - x ::
+       如若如此
+       如果我們還使用後綴表達式的話
+       棧處理函數也是特殊的消息
+       難點是消息是可以帶有參數的
+       這裏是否要求消息的所有參數都有名
+       如若都有名則看似純粹的後綴表達式也可行
+       不過語法上這可能過於極端了
+
+  - k ::
+       不妨區分數據域之求取消息 object.field
+       與帶有參數的消息 object (message arg ...)
+       不帶參數的消息 不做特殊處理 object (message)
+
+  - k ::
+       如此看來
+       一個帶有局部變元支持的 類 forth 語言 就可以勝任了
+
+  - x ::
+       既然構造子的每個域都要有名稱
+       那麼 構造子在被當作函數而作用時
+       就需要 optional argument
+       object.field 的語法也不對
+       因爲 object 是棧頂元素而已
+       並不出現在文本中
+
+  - k ::
+       我們可以假設順序
+       #+begin_src scheme
+       (data var id level)
+       #+end_src
+       這樣 var 就可以直接作用於棧中的兩個元素了
+
+  - x ::
+       我發現 object (message arg ...)
+       應該寫爲 (message arg ...)
+       因爲 object 是棧頂的數據 它不一定出現在文本中
+       那麼 (message arg ...) 就是默認以棧頂元素爲主參數的
+       或者我們可以用 {message arg ...}
+       而把 (message arg ...) 留給 (define ...) 之類的東西
+
+  - k ::
+       構造數據也可想象用
+       new (constructor-as-message arg ...)
+       先置 new 於棧頂
+
+  - x ::
+       我想我們還是簡單地利用順序吧
+       再看消息傳遞的語法
+       (message arg ...) 中的 arg 都是一些直接數據或變元
+       或者說 arg ... 計算出的結果返回到一個臨時棧中
+
+  - k ::
+       變元機制就用 #name 與 :name 的對子吧
+
+  - x ::
+       我想我們已經可以在實現之前試用我們的語法來實現 sequent0 了
+
+* 語法試用
+
+  - x ::
+       比如
+       #+begin_src scheme
+       (+ var id level)
+       (~ var (compose)
+          ds (push bs (deep :self)))
+
+       (~ var 'compose
+          (ds 'push (bs 'deep :self)))
+
+       (~ var (unify :data)
+          ...)
+       (* swap
+          #1 #2
+          :1 :2)
+       ;; when you are defining a method
+       ;; all the arguments in the returned new data-stack are named
+
+       (define-data var id level)
+       (define-method var (compose)
+         ds (push bs (deep :self)))
+       (define-method var (unify :data)
+         ...)
+       (define-function swap
+         #1 #2
+         :1 :2)
+       #+end_src
+
+  - k ::
+       下面我們還需要明白如何實現 if 或者單純用 cond
+       我們從之間的 rc1 找靈感
+
+  - x ::
+       我們可以有 'if' as message
+       (if [] [])
+       或者 還有 'cond' as message
+       (cond [] []
+             ...)
+
+  - k ::
+       如此的話 if 是 true 和 false 的 message
+       但是 cond 是誰的 message 呢
+
+  - x ::
+       所以不能
+       (cond [] []
+             ...)
+       而只能
+       [ [] []
+         ...
+       ] (cond)
+       這樣 cond 就是 list 這個數據的 message
+
+  - k ::
+       還有多參數的 combinator
+       比如 linrec binrec
+       應該如何處理
+
+  - x ::
+       我知道了
+       只要不要把 cond 實現爲 list 的 message
+       而實現爲一般的對棧中的 list 做 processing 的函數就好了
+       不是
+       [ [] []
+         ...
+       ] (cond)
+       而是
+       [ [] []
+         ...
+       ] cond
+       或
+       [ {} {}
+         ...
+       ] cond
+       同樣 linrec binrec ifte 也是如此
+
+  - k ::
+       看起來是不錯
+       既然這裏用到了很多 list
+       那麼 這個語言應該如何對待 list 呢
+
+  - x ::
+       既然 list 中可以包含各種類型的數據
+       那麼我們就把 list 處理函數都實現爲一般的 非消息型函數
+       並且 我們甚至可以把 object 這個數據結構如何用 list 實現給暴露出來
+
+  - k ::
+       literal list 的語法是什麼
+
+  - x ::
+       literal list of data 是 []
+       literal list of jojo 是 {}
+
+  - k ::
+       我們還要區分 定義消息的語法 與 定義一般函數的語法
+
+  - x ::
+       沒錯
+       如果說 object 要暴露出來
+       那麼 object 機制可能就能在語言內部實現
+       但是我想還是不要暴露的好
+       因爲這樣我們就有更多優化語言的機會
+
+  - k ::
+
+* 再 語法試用
+
+*** data & jo
+
+    #+begin_src scheme
+    ;; data
+    (+ var                id   level)
+    (+ cons               name {data ...})
+    (+ arrow              jojo jojo)
+    (+ lambda             type body)
+    (+ bind               data sub-data)
+    (+ trunk              type (vector trunky) index)
+
+    ;; trunky
+    (+ trunky-todo        body {data ...})
+    (+ trunky-done        {data ...})
+
+    ;; can be viewed as type
+    ;; jojo               {jo ...}
+    ;; body               {arrow ...}
+
+    ;; vector thus unique
+    ;; ls (level binding-list) in id for commit
+    (+ id                 (vector (name . counter) ls))
+
+    ;; jo
+    (+ call               name)
+    (+ apply)
+    (+ ex-bind            jo   jojo)
+    (+ im-bind            jo   jojo)
+    #+end_src
+
+*** 妙
+
+    - x ::
+         我們現在可以定義
+         數據構造子
+         消息
+         函數
+         還需要定義變元
+
+    - k ::
+         作爲一個動態語言
+         我們只要試用一個 box
+         使得裏面可以保存任何 data 就好了
+
+    - x ::
+         那麼相關的語法如何設計呢
+         必須引入新的語法關鍵詞了
+         比如
+         #+begin_src scheme
+         (= ns [])
+         #+end_src
+         就像之前設計 類似 forth 的全局變元一樣
+         這裏又有兩種選擇了
+         即 比如當 ns 的名字出現時
+         默認的處理方式是給出 box 本身
+         還是 box 中的值
+
+    -----------------
+
+    - x ::
+         我們竟然迂迴曲折地選擇了這麼久
+         也選擇不出 '正確的' 實現方式
+         遠方的朋友的友好的信件看起來都像是催促了
+
+    - k ::
+         可是說我們是在這種思考中積累經驗嗎
+
+    - x ::
+         那看似是在爲自己的行爲開脫
+
+    - k ::
+         很難找到 '正確' 的實現方法
+         所謂 '正確' 本身之存在性也值得懷疑
+         如何找尋 之問本身看來也失意
+         正誤爲一問
+         失意爲一問
+         失意之問 之意又生問
+
+    - x ::
+         啊
+         如此如此
+         鬧怪欲停問而行
+         需循方生方死之法
+
+    - k ::
+         而行者循者看來也失悟
+         文字比之行動之弱
+         由此得以觀知
+
+    - x ::
+         而文之爲行
+         亦行也
+         何高下強弱之分
+         古之真人
+         化其爲醇酒而樂享之
+
+*** 關於全局變元
+
+    - x ::
+         關於全局變元
+         必須從語法上區別
+         得其地址
+         或取其地址下的值
+         這兩種語義
+         #+begin_src scheme
+         (^ <ns> [])
+         ns
+         <ns>
+         #+end_src
+
+    - k ::
+         或者我們可以學習 clojure erlang 等等其他語言對全局變元之限制
+         以獲得更好的函數式語義
+
+*** 實現
+
+    - x ::
+         我們就使用上面所定下的語法吧
+         我們一邊用假想的語言寫 sequent0
+         一邊想辦法實現這個語言
+         總之就是一個簡單那的解釋器
+         編譯到 js 若是不行
+         就用 js 或 scheme 寫一個簡單那的解釋器
+
+    - k ::
+         scheme 用得太多
+         我們這次用 js 吧
+
+    - x ::
+         但是我們可能脫離不了 scheme
+         我暫且希望我們的語言實現起來能極爲簡單
+         這樣所使用的語言就不重要了
+         但是 但是
+         如果要自己處理命名空間
+         就難以做到極端簡單
+
+    - k ::
+         type +
+         method ~
+         function *
+         global-var ^
+         這就是我們要的全部了
+         而且
+         其實命名空間也可以先不用 hash-table 處理
+         直接用一個 name-list
+
+* 再試
+
+*** data & jo
+
+    #+begin_src scheme
+    ;; data
+    (+ var                id   level)
+    (+ cons               name data-list)
+    (+ arrow              antecedent succedent)
+    (+ lambda             type body)
+    (+ bind               data sub-data)
+    (+ trunk              type trunky index)
+
+    ;; trunky
+    (+ trunky-todo        body data-list-ref)
+    (+ trunky-done        data-list-ref)
+
+    ;; can be viewed as type
+    ;; jojo               {jo ...}
+    ;; body               {arrow ...}
+
+    ;; vector thus unique
+    ;; ls (level binding-list) in id for commit
+    (+ id                 (vector (name . counter) ls) ref)
+
+    ;; jo
+    (+ call               name)
+    (+ apply)
+    (+ ex-bind            jo   jojo)
+    (+ im-bind            jo   jojo)
+    #+end_src
+
+*** stack
+
+    #+begin_src scheme
+    (^ <ns> [])
+    (^ <ds> [])
+    (^ <bs> [])
+    (^ <rs> [])
+    (^ <gs> [])
+
+    (* push
+       )
+    (* push-list
+       )
+    (* pop
+       )
+    (* pop-list
+       )
+    #+end_src
+
+*** note
+
+    - x ::
+         我要用 rc1 來實現 sequent0
+         同時也要用 rc1 來實現 at1
+
+    - k ::
+         我們可以先試試看 rc1 實現 sequent0 的核心部分時的感受
+         這樣就是強迫的自上而下的編程了
+         因爲不光其中所調用的底層函數根本還沒有實現
+         甚至這個語言本身也沒有實現
+
+    - x ::
+         就這麼辦
+         但是還有一個問題
+         我之前說
+         [] 爲 list
+         {} 爲 jojo
+         其實是錯誤的
+         因爲 rc1 里根本就沒有 jojo
+         rc1 的 meta-programming 應該如何設計還不知道
+
+    - k ::
+         我想被基本的符號模式所區分的 lex
+         都應該在 meta-programming 有自己的數據類型存在
+         這樣 meta-programming 本身就更結構化
+
+    - x ::
+         基本的 符號模式 有
+
+         global-constructor
+         .field
+         (message . body)
+
+         global-function
+
+         <global-data-box>
+         global-data
+
+         :local-name
+         #local-name
+
+         [element ...]
+
+         頂層的 + ~ * ^ 除外
+         它們之後甚至可以被處理爲縮進語法
+         而不用 sexp
+
+    - k ::
+         注意 這裏只有下面三個是有歧義的
+         global-constructor
+         global-function
+         global-data
+         其他都是在語法上就能夠區分出來的
+
+    - x ::
+         在元編程時
+         如果我們使用編譯語義
+         那麼我們就可能在編譯時 確定這三種同樣模式的 symbol 之具體類型
+         這樣我們就能在元編程是完全區分他們了
+
+    - k ::
+         還有一個問題是
+         constructor 所構造出來的東西應該如何處理
+
+    - x ::
+         也許我們應該讓這些東西完全不透明
+         儘管開始的時候我們處理它們的方式可能很簡單
+
+    - k ::
+         沒錯
+         我想我們使用編譯到 js 的實現方式
+         在編譯的過程中考慮元編程能力
+
+* 確定語法 與 實現技術 <2016-12-19 Mon>
+
+*** 引
+
+    - x ::
+         今天的討論是爲了確定 rc1 的語法與實現技術
+
+    - k ::
+         我們從語法開始
+
+    - x ::
+         設想 以 有名的 record 爲主
+         數據構造子 的域 都有名
+         函數作用語法也都用有名的參數調用
+         對於數據構造子 比如 (data uni-var id level)
+         原則是 定義中出現的 其域的順序 應該不影響其作用
+         這樣參數的順序就應該明顯地出現在 數據構造子之作用中
+         比如 {uni-var id level}
+         或 {uni-var level id}
+         在定義函數的時候
+         #+begin_src scheme
+         (~ fun (message :field-a :field-b)
+           ...
+           (message :field-a :field-b))
+
+         (~ fun (message 'field-a 'field-b)
+           ...
+           (message 'field-a 'field-b))
+         #+end_src
+         :field-a :field-b 這些明顯的 field-name 不能直接作爲參數的名字
+         比如如上的遞歸調用
+         如此說來的話 函數的定義語法 就要與函數的作用語法相區別
+
+    - k ::
+         或者我們對與 data-constructor 使用 有名的 field
+         但是對於 函數作用 並不使用 有名的 的參數
+         比如
+         (...)
+         計算出一個臨時 ds
+         其中 的元素被處理如
+         << fun-to-call symbol-as-message arg ... >>
+
+    - x ::
+         但是沒必要把 fun-to-call 放在 (...) 中
+         只要取棧頂的元素就行了
+         這樣就是
+         << symbol-as-message arg ... >>
+         用 {...} message 就是 symbol-as-message
+         symbol 用 lisp 的 'name
+         這樣一般的 name 就是函數調用
+         [我們可能需要放棄 meta-programming]
+         或者根本沒有一般的函數調用語法
+         所有的函數都必須是 由 message 找到的 method
+         但是這是不可能的
+         比如 即使是用 new {'cons ...}
+         這裏的 new 也出離了 message 語法了
+
+    - k ::
+         我發現 以 {...} 爲 message 的話
+         object 處理 message 的方式其實是自由的
+         把第一個 symbol 元素作爲 main-message
+         然後由這個 元素查找 method
+         只是一種處理 message 的方式而已
+
+    - x ::
+         那我們就以這種 {...} 語義爲主
+         看看還需要什麼
+         [不考慮元編程能力]
+
+    - k ::
+         還需要考慮
+
+         定義 method 的方式
+         這個特殊的函數有一個特殊的 self 參數
+         並且 參數主要取自一個 {...} 所生成的 temp-ds
+
+         定義 一般的 非 method 的 函數的方式
+         使用的是全局 ds
+
+         生成 object 的方式 (用 object-constructor)
+         object-constructor
+         是爲 object
+         還是爲 function
+
+    - k ::
+         global-name can call a function
+         specially return a object
+
+    - x ::
+         這樣我們需要確定的就是解釋器的 init-object
+         與 init-literal-data
+         假設 name-space 是一個 init-object
+         #+begin_src scheme
+         ns { :var
+           :id
+           :level
+         }
+         ;; 或者
+         ns { :define-data-constructor
+           :var
+           :id
+           :level
+         }
+         ;; 另外 對與一般 function
+         ns { :define-function
+           :swap [
+              #:1 #:2
+              :1 :2
+            ]
+         }
+         ;; 作爲數據的 field 一定要有別於作爲 method 的 field
+         ns { :var
+           .id
+           .level
+           :compose [ ... ]
+         }
+         ;; 這樣 :name 與 .name 就都是 literal 了
+
+         ;; { ... } 在生成 call-with-output-to-list 的時候
+         ;; 可以 [越過 main-object] 取 ds 中的值
+         ;; 或者說 [ ... ] 中可以出現全局變元 ::var
+         ;; 但是 :name 已經被用過了
+         ;; 也許 $$name 與 $name
+         #+end_src
+
+    - k ::
+         我不知道你怎麼想
+         但是 這種語言已經不是我理想中的語言了
+         與 scheme 相比它真的有什麼優勢嗎
+         我們在 scheme 中加入 一個小的 oo 機制之後
+         不是就能夠靈活地在 依賴位置的 pattern-match 與 object 之間選擇了嗎
+         爲什麼還要重新實現一個語言呢
+         我們語言與 js 相比優勢又何在呢
+
+    - x ::
+         一種我執嗎
+
+* 總結 自然語言對算法的描述
+
+  - 底階的程序語言就是對算法的描述
+    只不過所描述的操作都於改變或查看機器的狀態
+    高階的程序語言 想要隱藏這種 改變或查看機器的狀態 之語義
